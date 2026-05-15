@@ -1,0 +1,7 @@
+// import {
+//   "username/moontask" @lib,
+// }
+
+options(
+  "is-main": true,
+)
