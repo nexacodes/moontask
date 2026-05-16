@@ -11,6 +11,6 @@ BSD-2-Clause license.
 
 See:
 
-- [LICENSE](/Users/admin/Desktop/work/moontask/LICENSE)
-- [THIRD_PARTY_NOTICES.md](/Users/admin/Desktop/work/moontask/THIRD_PARTY_NOTICES.md)
-- [licenses/taskq-BSD-2-Clause.txt](/Users/admin/Desktop/work/moontask/licenses/taskq-BSD-2-Clause.txt)
+- [LICENSE](LICENSE)
+- [THIRD_PARTY_NOTICES.md](/THIRD_PARTY_NOTICES.md)
+- [licenses/taskq-BSD-2-Clause.txt](/licenses/taskq-BSD-2-Clause.txt)
