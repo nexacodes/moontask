@@ -220,12 +220,12 @@ pub struct TaskContext {
 
 pub enum RetryPolicy {
   NoRetry
-  Fixed(max_attempts : Int, delay_ms : Int)
+  Fixed(max_attempts~ : Int, delay_ms~ : Int)
   Exponential(
-    max_attempts : Int,
-    initial_delay_ms : Int,
-    factor : Double,
-    max_delay_ms : Int,
+    max_attempts~ : Int,
+    initial_delay_ms~ : Int,
+    factor~ : Double,
+    max_delay_ms~ : Int,
   )
 }
 

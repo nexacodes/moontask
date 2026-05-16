@@ -1,10 +1,14 @@
 {
-  "name": "username/moontask",
+  "name": "nexacodes/moontask",
   "version": "0.1.0",
+  "deps": {
+    "moonbitlang/async": "0.17.0"
+  },
   "readme": "README.mbt.md",
-  "repository": "",
+  "repository": "https://github.com/chu2508/moontask",
   "license": "Apache-2.0",
   "keywords": [],
   "description": "",
+  "source": "src",
   "preferred-target": "native"
 }

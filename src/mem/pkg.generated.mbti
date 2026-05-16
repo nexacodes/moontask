@@ -1,0 +1,59 @@
+// Generated using `moon info`, DON'T EDIT IT
+package "nexacodes/moontask/mem"
+
+import {
+  "moonbitlang/core/debug",
+  "nexacodes/moontask",
+  "nexacodes/moontask/runtime",
+}
+
+// Values
+
+// Errors
+
+// Types and methods
+pub struct MemQueue {
+  name : String
+  registry : @moontask.Registry
+  options : @moontask.QueueOptions
+  plan : @runtime.RuntimePlan
+  mut lifecycle : @runtime.QueueLifecycle
+  jobs : Map[String, @moontask.JobEnvelope]
+  ready_queue : Array[String]
+  inflight : Map[String, @moontask.JobEnvelope]
+  mut next_job_id : Int
+  mut processed : Int
+  mut succeeded : Int
+  retried : Int
+  mut failed : Int
+  mut dead : Int
+  paused : Bool
+}
+pub fn MemQueue::close_now(Self) -> Unit
+pub fn MemQueue::complete_failure(Self, WorkerLease, String) -> Unit raise
+pub fn MemQueue::complete_success(Self, WorkerLease) -> Unit raise
+pub fn MemQueue::dispatch_next(Self) -> WorkerLease? raise
+pub fn[A] MemQueue::enqueue(Self, @moontask.Task[A], A, @moontask.EnqueueOptions) -> String raise
+pub fn MemQueue::inflight_job_count(Self) -> Int
+pub fn MemQueue::job_count(Self) -> Int
+pub fn MemQueue::jobs_snapshot(Self) -> Array[@moontask.JobEnvelope]
+pub fn MemQueue::lifecycle(Self) -> @runtime.QueueLifecycle
+pub fn MemQueue::new(@moontask.Registry, @moontask.QueueOptions) -> Self
+pub async fn MemQueue::process_all(Self) -> Int
+pub async fn MemQueue::process_next(Self) -> String?
+pub fn MemQueue::queue_name(Self) -> String
+pub fn MemQueue::ready_job_count(Self) -> Int
+pub fn MemQueue::registered_tasks(Self) -> Array[String]
+pub fn MemQueue::runtime_plan(Self) -> @runtime.RuntimePlan
+pub async fn MemQueue::shutdown_gracefully(Self, timeout_ms? : Int) -> Unit
+pub fn MemQueue::snapshot(Self) -> @moontask.StatsSnapshot
+
+pub(all) struct WorkerLease {
+  job : @moontask.JobEnvelope
+  context : @moontask.TaskContext
+} derive(Eq, ToJson, @debug.Debug)
+
+// Type aliases
+
+// Traits
+

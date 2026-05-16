@@ -1,0 +1,48 @@
+// Generated using `moon info`, DON'T EDIT IT
+package "nexacodes/moontask/runtime"
+
+import {
+  "moonbitlang/core/debug",
+  "nexacodes/moontask",
+}
+
+// Values
+pub fn can_dispatch_work(QueueLifecycle) -> Bool
+
+pub fn is_accepting_commands(QueueLifecycle) -> Bool
+
+pub fn phase_two_runtime_plan(@moontask.QueueOptions) -> RuntimePlan
+
+// Errors
+
+// Types and methods
+pub(all) enum Command {
+  Enqueue(@moontask.JobEnvelope)
+  Dispatch
+  CompleteSuccess(String)
+  CompleteFailure(String, String)
+  PollStats
+  Shutdown(Bool, Int)
+  Pause(String)
+  Resume
+  Cancel(String, String)
+} derive(Eq, ToJson, @debug.Debug)
+
+pub(all) enum QueueLifecycle {
+  Bootstrapping
+  Running
+  Closing
+  Closed
+} derive(Eq, ToJson, @debug.Debug)
+
+pub(all) struct RuntimePlan {
+  lifecycle : QueueLifecycle
+  max_concurrency : Int
+  command_names : Array[String]
+  notes : Array[String]
+} derive(Eq, ToJson, @debug.Debug)
+
+// Type aliases
+
+// Traits
+
