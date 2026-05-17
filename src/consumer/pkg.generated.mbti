@@ -1,0 +1,95 @@
+// Generated using `moon info`, DON'T EDIT IT
+package "nexacodes/moontask/consumer"
+
+import {
+  "moonbitlang/async/semaphore",
+  "moonbitlang/core/debug",
+  "nexacodes/moontask/backend",
+  "nexacodes/moontask/core",
+  "nexacodes/moontask/registry",
+}
+
+// Values
+pub fn default_consumer_options(String, String) -> ConsumerOptions
+
+pub fn default_consumer_runtime_options() -> ConsumerRuntimeOptions
+
+// Errors
+
+// Types and methods
+pub(all) enum ConsumerLifecycle {
+  Idle
+  Starting
+  Running
+  Stopping
+  Stopped
+} derive(Eq, ToJson, @debug.Debug)
+
+pub(all) struct ConsumerOptions {
+  queue_name : String
+  consumer_id : String
+  max_concurrency : Int
+  reserve_batch_size : Int
+  lease_ms : Int
+  poll_interval_ms : Int
+  pause_poll_interval_ms : Int
+  heartbeat_interval_ms : Int
+  reaper_interval_ms : Int
+} derive(Eq, ToJson, @debug.Debug)
+
+pub(all) struct ConsumerRuntimeOptions {
+  hooks : Array[&@core.Hook]
+  clock : @core.RuntimeClock
+}
+
+pub struct ConsumerService[B] {
+  backend : B
+  registry : @registry.Registry
+  options : ConsumerOptions
+  hooks : Array[&@core.Hook]
+  clock : @core.RuntimeClock
+  worker_semaphore : @semaphore.Semaphore
+  inflight_leases : Map[String, @core.Lease]
+  mut lifecycle : ConsumerLifecycle
+  mut inflight_count : Int
+  mut started_at_ms : Int64?
+  mut stopped_at_ms : Int64?
+  mut last_heartbeat_at_ms : Int64?
+  mut last_reaper_at_ms : Int64?
+}
+pub fn[B : @backend.QueueBackend] ConsumerService::ack_lease(Self[B], @core.Lease) -> Unit raise
+pub fn[B] ConsumerService::available_worker_slots(Self[B]) -> Int
+pub fn[B] ConsumerService::consumer_id(Self[B]) -> String
+pub fn[B : @backend.QueueBackend] ConsumerService::extend_lease(Self[B], @core.Lease, Int64) -> Unit raise
+pub fn[B] ConsumerService::is_accepting_work(Self[B]) -> Bool
+pub fn[B] ConsumerService::lifecycle(Self[B]) -> ConsumerLifecycle
+pub fn[B : @backend.QueueBackend] ConsumerService::mark_running_lease(Self[B], @core.Lease, Int64, Int64?) -> @core.Lease raise
+pub fn[B : @backend.QueueBackend] ConsumerService::nack_dead_lease(Self[B], @core.Lease, String) -> Unit raise
+pub fn[B : @backend.QueueBackend] ConsumerService::nack_retry_lease(Self[B], @core.Lease, String, Int64) -> Unit raise
+pub fn[B] ConsumerService::new(B, @registry.Registry, ConsumerOptions) -> Self[B]
+pub fn[B] ConsumerService::new_with_runtime(B, @registry.Registry, ConsumerOptions, ConsumerRuntimeOptions) -> Self[B]
+pub fn[B] ConsumerService::queue_name(Self[B]) -> String
+pub fn[B : @backend.QueueBackend] ConsumerService::reap_expired_leases(Self[B]) -> Int raise
+pub fn[B] ConsumerService::registry(Self[B]) -> @registry.Registry
+pub fn[B : @backend.QueueBackend] ConsumerService::reserve_once(Self[B]) -> Array[@core.Lease] raise
+pub fn[B : @backend.QueueBackend] ConsumerService::run_heartbeat_cycle(Self[B]) -> Unit raise
+pub fn[B : @backend.QueueBackend] ConsumerService::run_reaper_cycle(Self[B]) -> Unit raise
+pub async fn[B] ConsumerService::sleep_until_next_poll(Self[B]) -> Unit
+pub fn[B] ConsumerService::snapshot(Self[B]) -> ConsumerSnapshot
+pub async fn[B : @backend.QueueBackend] ConsumerService::start(Self[B]) -> Unit
+pub fn[B] ConsumerService::stop(Self[B], Int) -> Unit
+
+pub(all) struct ConsumerSnapshot {
+  queue_name : String
+  consumer_id : String
+  lifecycle : ConsumerLifecycle
+  inflight_count : Int
+  available_worker_slots : Int
+  started_at_ms : Int64?
+  stopped_at_ms : Int64?
+} derive(Eq, ToJson, @debug.Debug)
+
+// Type aliases
+
+// Traits
+
