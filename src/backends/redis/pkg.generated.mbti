@@ -1,0 +1,65 @@
+// Generated using `moon info`, DON'T EDIT IT
+package "nexacodes/moontask/backends/redis"
+
+import {
+  "moonbitlang/async/socket",
+  "moonbitlang/core/debug",
+  "nexacodes/moontask/backend",
+  "nexacodes/moontask/core",
+}
+
+// Values
+pub async fn connect(String, Int) -> RedisClient
+
+pub fn new_redis_backend(String, Int, prefix? : String) -> RedisBackend
+
+// Errors
+
+// Types and methods
+pub struct RedisBackend {
+  host : String
+  port : Int
+  prefix : String
+}
+pub async fn RedisBackend::reset_namespace(Self) -> Unit
+pub impl @backend.QueueBackend for RedisBackend
+
+pub struct RedisClient {
+  conn : @socket.Tcp
+}
+pub fn RedisClient::close(Self) -> Unit
+pub async fn RedisClient::hgetall(Self, String) -> Result[Map[String, String], String]
+pub async fn RedisClient::incr(Self, String) -> Result[Int, String]
+pub async fn RedisClient::keys(Self, String) -> Result[Array[String], String]
+pub async fn RedisClient::ping(Self) -> Result[String, String]
+pub async fn RedisClient::sadd(Self, String, Array[String]) -> Result[Int, String]
+pub async fn RedisClient::send(Self, Array[String]) -> RedisValue
+pub async fn RedisClient::set(Self, String, String) -> Result[String, String]
+pub async fn RedisClient::smembers(Self, String) -> Result[Array[String], String]
+
+pub(all) enum RedisValue {
+  SimpleString(String)
+  Error(String)
+  Integer(Int)
+  BulkString(String?)
+  Array(Array[RedisValue])
+} derive(Eq, @debug.Debug)
+pub fn RedisValue::to_array(Self) -> Result[Array[String], String]
+pub fn RedisValue::to_bulk_string(Self) -> Result[String?, String]
+pub fn RedisValue::to_hash(Self) -> Result[Map[String, String], String]
+pub fn RedisValue::to_int(Self) -> Result[Int, String]
+pub fn RedisValue::to_string(Self) -> Result[String, String]
+
+// Type aliases
+pub type RedisArray = Result[Array[String], String]
+
+pub type RedisBulkString = Result[String?, String]
+
+pub type RedisHash = Result[Map[String, String], String]
+
+pub type RedisInt = Result[Int, String]
+
+pub type RedisString = Result[String, String]
+
+// Traits
+

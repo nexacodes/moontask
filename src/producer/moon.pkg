@@ -5,6 +5,7 @@ import {
 }
 
 import {
+  "moonbitlang/async",
   "moonbitlang/core/test" @test,
   "nexacodes/moontask/backends/memory" @memory,
   "nexacodes/moontask/testing",

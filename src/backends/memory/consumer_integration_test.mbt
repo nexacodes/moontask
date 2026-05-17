@@ -28,18 +28,18 @@ fn build_consumer_job(
 }
 
 ///|
-fn[B : @backend.QueueBackend] enqueue_job(
+async fn[B : @backend.QueueBackend] enqueue_job(
   backend : B,
   job : @core.JobRecord,
-) -> @core.JobId raise {
+) -> @core.JobId {
   backend.enqueue(job)
 }
 
 ///|
-fn[B : @backend.QueueBackend] stats_for_queue(
+async fn[B : @backend.QueueBackend] stats_for_queue(
   backend : B,
   queue_name : String,
-) -> @core.StatsSnapshot raise {
+) -> @core.StatsSnapshot {
   backend.stats(queue_name)
 }
 

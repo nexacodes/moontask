@@ -18,8 +18,8 @@ pub struct Producer[B] {
   clock : @core.RuntimeClock
   mut next_job_sequence : Int
 }
-pub fn[B : @backend.QueueBackend, A] Producer::enqueue(Self[B], @core.Task[A], A) -> String raise
-pub fn[B : @backend.QueueBackend, A] Producer::enqueue_with_options(Self[B], @core.Task[A], A, @core.EnqueueOptions) -> String raise
+pub async fn[B : @backend.QueueBackend, A] Producer::enqueue(Self[B], @core.Task[A], A) -> String
+pub async fn[B : @backend.QueueBackend, A] Producer::enqueue_with_options(Self[B], @core.Task[A], A, @core.EnqueueOptions) -> String
 pub fn[B] Producer::new(B, String) -> Self[B]
 pub fn[B] Producer::new_with_runtime(B, String, ProducerRuntimeOptions) -> Self[B]
 pub fn[B] Producer::queue_name(Self[B]) -> String

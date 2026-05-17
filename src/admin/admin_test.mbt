@@ -28,10 +28,10 @@ fn build_admin_job(
 }
 
 ///|
-fn enqueue_admin_job(
+async fn enqueue_admin_job(
   backend : @memory.MemBackend,
   job : @core.JobRecord,
-) -> @core.JobId raise {
+) -> @core.JobId {
   backend.enqueue(job)
 }
 
@@ -52,7 +52,7 @@ async fn wait_until_admin_stats(
 }
 
 ///|
-test "admin client pauses and resumes queues while exposing queue stats" {
+async test "admin client pauses and resumes queues while exposing queue stats" {
   let backend = @memory.new_mem_backend()
   let admin = AdminClient::new(backend)
   ignore(
@@ -76,7 +76,7 @@ test "admin client pauses and resumes queues while exposing queue stats" {
 }
 
 ///|
-test "admin client lists jobs, loads jobs, retries dead jobs, cancels jobs, drains queues, and reports health" {
+async test "admin client lists jobs, loads jobs, retries dead jobs, cancels jobs, drains queues, and reports health" {
   let backend = @memory.new_mem_backend()
   let admin = AdminClient::new(backend)
   ignore(

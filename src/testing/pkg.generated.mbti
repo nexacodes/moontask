@@ -7,19 +7,19 @@ import {
 }
 
 // Values
-pub fn[B : @backend.QueueBackend] assert_backend_contract_expired_lease_redelivery(B) -> Unit raise
+pub async fn[B : @backend.QueueBackend] assert_backend_contract_expired_lease_redelivery(B) -> Unit
 
-pub fn[B : @backend.QueueBackend] assert_backend_contract_extend_lease(B) -> Unit raise
+pub async fn[B : @backend.QueueBackend] assert_backend_contract_extend_lease(B) -> Unit
 
-pub fn[B : @backend.QueueBackend] assert_backend_contract_lease_exclusivity(B) -> Unit raise
+pub async fn[B : @backend.QueueBackend] assert_backend_contract_lease_exclusivity(B) -> Unit
 
-pub fn[B : @backend.QueueBackend] assert_backend_contract_pause_and_resume(B) -> Unit raise
+pub async fn[B : @backend.QueueBackend] assert_backend_contract_pause_and_resume(B) -> Unit
 
-pub fn[B : @backend.QueueBackend] assert_backend_contract_reserve_and_ack(B) -> Unit raise
+pub async fn[B : @backend.QueueBackend] assert_backend_contract_reserve_and_ack(B) -> Unit
 
-pub fn[B : @backend.QueueBackend] assert_backend_contract_retry_and_dedupe_lifecycle(B) -> Unit raise
+pub async fn[B : @backend.QueueBackend] assert_backend_contract_retry_and_dedupe_lifecycle(B) -> Unit
 
-pub fn[B : @backend.QueueBackend] assert_backend_contract_retry_visibility_window(B) -> Unit raise
+pub async fn[B : @backend.QueueBackend] assert_backend_contract_retry_visibility_window(B) -> Unit
 
 pub fn build_backend_contract_job(String, String, Int64, dedupe_key? : String) -> @core.JobRecord
 

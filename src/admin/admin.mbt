@@ -70,77 +70,77 @@ pub fn[B] AdminClient::new_with_runtime(
 }
 
 ///|
-pub fn[B : @backend.QueueBackend] AdminClient::pause_queue(
+pub async fn[B : @backend.QueueBackend] AdminClient::pause_queue(
   self : AdminClient[B],
   queue_name : String,
   reason : String,
-) -> Unit raise {
+) -> Unit {
   self.backend.pause(queue_name, reason)
 }
 
 ///|
-pub fn[B : @backend.QueueBackend] AdminClient::resume_queue(
+pub async fn[B : @backend.QueueBackend] AdminClient::resume_queue(
   self : AdminClient[B],
   queue_name : String,
-) -> Unit raise {
+) -> Unit {
   self.backend.resume_queue(queue_name)
 }
 
 ///|
-pub fn[B : @backend.QueueBackend] AdminClient::queue_snapshot(
+pub async fn[B : @backend.QueueBackend] AdminClient::queue_snapshot(
   self : AdminClient[B],
   queue_name : String,
-) -> QueueAdminSnapshot raise {
+) -> QueueAdminSnapshot {
   { queue_name, stats: self.backend.stats(queue_name) }
 }
 
 ///|
-pub fn[B : @backend.QueueBackend] AdminClient::list_jobs(
+pub async fn[B : @backend.QueueBackend] AdminClient::list_jobs(
   self : AdminClient[B],
   queue_name : String,
   status? : @core.JobStatus,
   limit : Int,
   cursor? : String,
-) -> @core.JobPage raise {
+) -> @core.JobPage {
   self.backend.list_jobs(queue_name, status, limit, cursor)
 }
 
 ///|
-pub fn[B : @backend.QueueBackend] AdminClient::get_job(
+pub async fn[B : @backend.QueueBackend] AdminClient::get_job(
   self : AdminClient[B],
   job_id : String,
-) -> @core.JobRecord? raise {
+) -> @core.JobRecord? {
   self.backend.get_job(job_id)
 }
 
 ///|
-pub fn[B : @backend.QueueBackend] AdminClient::retry_dead_job(
+pub async fn[B : @backend.QueueBackend] AdminClient::retry_dead_job(
   self : AdminClient[B],
   job_id : String,
-) -> Bool raise {
+) -> Bool {
   self.backend.retry_dead_job(job_id, (self.clock.now_ms)())
 }
 
 ///|
-pub fn[B : @backend.QueueBackend] AdminClient::cancel_job(
+pub async fn[B : @backend.QueueBackend] AdminClient::cancel_job(
   self : AdminClient[B],
   job_id : String,
-) -> Bool raise {
+) -> Bool {
   self.backend.cancel_job(job_id, (self.clock.now_ms)())
 }
 
 ///|
-pub fn[B : @backend.QueueBackend] AdminClient::drain_queue(
+pub async fn[B : @backend.QueueBackend] AdminClient::drain_queue(
   self : AdminClient[B],
   queue_name : String,
-) -> Int raise {
+) -> Int {
   self.backend.drain_queue(queue_name, (self.clock.now_ms)())
 }
 
 ///|
-pub fn[B : @backend.QueueBackend] AdminClient::health(
+pub async fn[B : @backend.QueueBackend] AdminClient::health(
   self : AdminClient[B],
-) -> @core.BackendHealth raise {
+) -> @core.BackendHealth {
   self.backend.health()
 }
 
@@ -154,10 +154,10 @@ pub fn[B] AdminClient::inspect_consumer(
 }
 
 ///|
-pub fn[B : @backend.QueueBackend] AdminClient::metrics(
+pub async fn[B : @backend.QueueBackend] AdminClient::metrics(
   self : AdminClient[B],
   consumer : @consumer.ConsumerService[B],
-) -> ConsumerMetricsSnapshot raise {
+) -> ConsumerMetricsSnapshot {
   let consumer_snapshot = consumer.snapshot()
   let runtime_metrics = consumer.runtime_metrics()
   let queue_stats = self.backend.stats(consumer_snapshot.queue_name)

@@ -18,19 +18,19 @@ pub struct AdminClient[B] {
   backend : B
   clock : @core.RuntimeClock
 }
-pub fn[B : @backend.QueueBackend] AdminClient::cancel_job(Self[B], String) -> Bool raise
-pub fn[B : @backend.QueueBackend] AdminClient::drain_queue(Self[B], String) -> Int raise
-pub fn[B : @backend.QueueBackend] AdminClient::get_job(Self[B], String) -> @core.JobRecord? raise
-pub fn[B : @backend.QueueBackend] AdminClient::health(Self[B]) -> @core.BackendHealth raise
+pub async fn[B : @backend.QueueBackend] AdminClient::cancel_job(Self[B], String) -> Bool
+pub async fn[B : @backend.QueueBackend] AdminClient::drain_queue(Self[B], String) -> Int
+pub async fn[B : @backend.QueueBackend] AdminClient::get_job(Self[B], String) -> @core.JobRecord?
+pub async fn[B : @backend.QueueBackend] AdminClient::health(Self[B]) -> @core.BackendHealth
 pub fn[B] AdminClient::inspect_consumer(Self[B], @consumer.ConsumerService[B]) -> @consumer.ConsumerInspection
-pub fn[B : @backend.QueueBackend] AdminClient::list_jobs(Self[B], String, status? : @core.JobStatus, Int, cursor? : String) -> @core.JobPage raise
-pub fn[B : @backend.QueueBackend] AdminClient::metrics(Self[B], @consumer.ConsumerService[B]) -> ConsumerMetricsSnapshot raise
+pub async fn[B : @backend.QueueBackend] AdminClient::list_jobs(Self[B], String, status? : @core.JobStatus, Int, cursor? : String) -> @core.JobPage
+pub async fn[B : @backend.QueueBackend] AdminClient::metrics(Self[B], @consumer.ConsumerService[B]) -> ConsumerMetricsSnapshot
 pub fn[B] AdminClient::new(B) -> Self[B]
 pub fn[B] AdminClient::new_with_runtime(B, AdminRuntimeOptions) -> Self[B]
-pub fn[B : @backend.QueueBackend] AdminClient::pause_queue(Self[B], String, String) -> Unit raise
-pub fn[B : @backend.QueueBackend] AdminClient::queue_snapshot(Self[B], String) -> QueueAdminSnapshot raise
-pub fn[B : @backend.QueueBackend] AdminClient::resume_queue(Self[B], String) -> Unit raise
-pub fn[B : @backend.QueueBackend] AdminClient::retry_dead_job(Self[B], String) -> Bool raise
+pub async fn[B : @backend.QueueBackend] AdminClient::pause_queue(Self[B], String, String) -> Unit
+pub async fn[B : @backend.QueueBackend] AdminClient::queue_snapshot(Self[B], String) -> QueueAdminSnapshot
+pub async fn[B : @backend.QueueBackend] AdminClient::resume_queue(Self[B], String) -> Unit
+pub async fn[B : @backend.QueueBackend] AdminClient::retry_dead_job(Self[B], String) -> Bool
 
 pub(all) struct AdminRuntimeOptions {
   clock : @core.RuntimeClock

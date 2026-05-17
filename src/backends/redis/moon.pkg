@@ -1,0 +1,16 @@
+import {
+  "moonbitlang/async/io",
+  "moonbitlang/async/socket",
+  "moonbitlang/core/buffer" @buffer,
+  "moonbitlang/core/encoding/base64" @base64,
+  "moonbitlang/core/encoding/utf8" @utf8,
+  "moonbitlang/core/string" @string,
+  "nexacodes/moontask/backend" @backend,
+  "nexacodes/moontask/core" @core,
+}
+
+import {
+  "moonbitlang/async",
+  "moonbitlang/core/test" @test,
+  "nexacodes/moontask/testing",
+} for "test"

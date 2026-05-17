@@ -1,9 +1,9 @@
 ///|
-fn[B : @backend.QueueBackend] reserve_one_visible(
+async fn[B : @backend.QueueBackend] reserve_one_visible(
   backend : B,
   queue_name : String,
   now_ms : Int64,
-) -> @core.Lease raise {
+) -> @core.Lease {
   let leases = backend.reserve_batch(
     queue_name, "producer-test", 1, 1000, now_ms,
   )
@@ -12,7 +12,7 @@ fn[B : @backend.QueueBackend] reserve_one_visible(
 }
 
 ///|
-test "producer enqueues typed payloads with task retry defaults" {
+async test "producer enqueues typed payloads with task retry defaults" {
   let clock = @testing.new_fake_clock(1000L)
   let backend = @memory.new_mem_backend()
   let producer = Producer::new_with_runtime(backend, "emails", {
@@ -43,7 +43,7 @@ test "producer enqueues typed payloads with task retry defaults" {
 }
 
 ///|
-test "producer applies enqueue options to scheduled jobs" {
+async test "producer applies enqueue options to scheduled jobs" {
   let clock = @testing.new_fake_clock(1000L)
   let backend = @memory.new_mem_backend()
   let producer = Producer::new_with_runtime(backend, "emails", {
@@ -81,7 +81,7 @@ test "producer applies enqueue options to scheduled jobs" {
 }
 
 ///|
-test "producer generates monotonic job ids across multiple enqueues" {
+async test "producer generates monotonic job ids across multiple enqueues" {
   let clock = @testing.new_fake_clock(42L)
   let backend = @memory.new_mem_backend()
   let producer = Producer::new_with_runtime(backend, "emails", {

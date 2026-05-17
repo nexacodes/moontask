@@ -33,9 +33,9 @@ pub fn build_backend_contract_job(
 }
 
 ///|
-pub fn[B : @backend.QueueBackend] assert_backend_contract_reserve_and_ack(
+pub async fn[B : @backend.QueueBackend] assert_backend_contract_reserve_and_ack(
   backend : B,
-) -> Unit raise {
+) -> Unit {
   let job_id = backend.enqueue(
     build_backend_contract_job("job-1", "emails", 0L),
   )
@@ -59,9 +59,9 @@ pub fn[B : @backend.QueueBackend] assert_backend_contract_reserve_and_ack(
 }
 
 ///|
-pub fn[B : @backend.QueueBackend] assert_backend_contract_lease_exclusivity(
+pub async fn[B : @backend.QueueBackend] assert_backend_contract_lease_exclusivity(
   backend : B,
-) -> Unit raise {
+) -> Unit {
   ignore(
     backend.enqueue(build_backend_contract_job("job-lease-1", "emails", 0L)),
   )
@@ -74,9 +74,9 @@ pub fn[B : @backend.QueueBackend] assert_backend_contract_lease_exclusivity(
 }
 
 ///|
-pub fn[B : @backend.QueueBackend] assert_backend_contract_expired_lease_redelivery(
+pub async fn[B : @backend.QueueBackend] assert_backend_contract_expired_lease_redelivery(
   backend : B,
-) -> Unit raise {
+) -> Unit {
   ignore(backend.enqueue(build_backend_contract_job("job-2", "emails", 0L)))
 
   let leases = backend.reserve_batch("emails", "consumer-a", 1, 50, 100L)
@@ -89,9 +89,9 @@ pub fn[B : @backend.QueueBackend] assert_backend_contract_expired_lease_redelive
 }
 
 ///|
-pub fn[B : @backend.QueueBackend] assert_backend_contract_retry_visibility_window(
+pub async fn[B : @backend.QueueBackend] assert_backend_contract_retry_visibility_window(
   backend : B,
-) -> Unit raise {
+) -> Unit {
   ignore(
     backend.enqueue(build_backend_contract_job("job-retry-1", "emails", 0L)),
   )
@@ -109,9 +109,9 @@ pub fn[B : @backend.QueueBackend] assert_backend_contract_retry_visibility_windo
 }
 
 ///|
-pub fn[B : @backend.QueueBackend] assert_backend_contract_retry_and_dedupe_lifecycle(
+pub async fn[B : @backend.QueueBackend] assert_backend_contract_retry_and_dedupe_lifecycle(
   backend : B,
-) -> Unit raise {
+) -> Unit {
   ignore(
     backend.enqueue(
       build_backend_contract_job("job-3", "emails", 0L, dedupe_key="same-key"),
@@ -143,9 +143,9 @@ pub fn[B : @backend.QueueBackend] assert_backend_contract_retry_and_dedupe_lifec
 }
 
 ///|
-pub fn[B : @backend.QueueBackend] assert_backend_contract_extend_lease(
+pub async fn[B : @backend.QueueBackend] assert_backend_contract_extend_lease(
   backend : B,
-) -> Unit raise {
+) -> Unit {
   ignore(
     backend.enqueue(build_backend_contract_job("job-extend-1", "emails", 0L)),
   )
@@ -165,9 +165,9 @@ pub fn[B : @backend.QueueBackend] assert_backend_contract_extend_lease(
 }
 
 ///|
-pub fn[B : @backend.QueueBackend] assert_backend_contract_pause_and_resume(
+pub async fn[B : @backend.QueueBackend] assert_backend_contract_pause_and_resume(
   backend : B,
-) -> Unit raise {
+) -> Unit {
   ignore(backend.enqueue(build_backend_contract_job("job-7", "emails", 0L)))
   backend.pause("emails", "ops")
   @test.assert_eq(

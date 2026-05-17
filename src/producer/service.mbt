@@ -93,12 +93,12 @@ fn[A] build_job_record(
 }
 
 ///|
-fn[B : @backend.QueueBackend, A] enqueue_internal(
+async fn[B : @backend.QueueBackend, A] enqueue_internal(
   producer : Producer[B],
   task : @core.Task[A],
   payload : A,
   options : @core.EnqueueOptions,
-) -> @core.JobId raise {
+) -> @core.JobId {
   let now_ms = (producer.clock.now_ms)()
   let job_id = build_job_id(producer, now_ms)
   let job = build_job_record(
@@ -113,20 +113,20 @@ fn[B : @backend.QueueBackend, A] enqueue_internal(
 }
 
 ///|
-pub fn[B : @backend.QueueBackend, A] Producer::enqueue(
+pub async fn[B : @backend.QueueBackend, A] Producer::enqueue(
   self : Producer[B],
   task : @core.Task[A],
   payload : A,
-) -> @core.JobId raise {
+) -> @core.JobId {
   enqueue_internal(self, task, payload, @core.default_enqueue_options())
 }
 
 ///|
-pub fn[B : @backend.QueueBackend, A] Producer::enqueue_with_options(
+pub async fn[B : @backend.QueueBackend, A] Producer::enqueue_with_options(
   self : Producer[B],
   task : @core.Task[A],
   payload : A,
   options : @core.EnqueueOptions,
-) -> @core.JobId raise {
+) -> @core.JobId {
   enqueue_internal(self, task, payload, options)
 }

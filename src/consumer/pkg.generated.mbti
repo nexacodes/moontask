@@ -107,21 +107,21 @@ pub struct ConsumerService[B] {
 }
 pub fn[B] ConsumerService::available_worker_slots(Self[B]) -> Int
 pub fn[B] ConsumerService::consumer_id(Self[B]) -> String
-pub fn[B : @backend.QueueBackend] ConsumerService::extend_lease(Self[B], @core.Lease, Int64) -> Unit raise
+pub async fn[B : @backend.QueueBackend] ConsumerService::extend_lease(Self[B], @core.Lease, Int64) -> Unit
 pub fn[B] ConsumerService::inspect(Self[B]) -> ConsumerInspection
 pub fn[B] ConsumerService::is_accepting_work(Self[B]) -> Bool
 pub fn[B] ConsumerService::lifecycle(Self[B]) -> ConsumerLifecycle
-pub fn[B : @backend.QueueBackend] ConsumerService::mark_running_lease(Self[B], @core.Lease, Int64, Int64?) -> @core.Lease raise
-pub fn[B : @backend.QueueBackend] ConsumerService::nack_dead_lease(Self[B], @core.Lease, String, Int64) -> Unit raise
-pub fn[B : @backend.QueueBackend] ConsumerService::nack_retry_lease(Self[B], @core.Lease, String, Int64, Int64) -> Unit raise
+pub async fn[B : @backend.QueueBackend] ConsumerService::mark_running_lease(Self[B], @core.Lease, Int64, Int64?) -> @core.Lease
+pub async fn[B : @backend.QueueBackend] ConsumerService::nack_dead_lease(Self[B], @core.Lease, String, Int64) -> Unit
+pub async fn[B : @backend.QueueBackend] ConsumerService::nack_retry_lease(Self[B], @core.Lease, String, Int64, Int64) -> Unit
 pub fn[B] ConsumerService::new(B, @registry.Registry, ConsumerOptions) -> Self[B]
 pub fn[B] ConsumerService::new_with_runtime(B, @registry.Registry, ConsumerOptions, ConsumerRuntimeOptions) -> Self[B]
 pub fn[B] ConsumerService::queue_name(Self[B]) -> String
-pub fn[B : @backend.QueueBackend] ConsumerService::reap_expired_leases(Self[B]) -> Int raise
+pub async fn[B : @backend.QueueBackend] ConsumerService::reap_expired_leases(Self[B]) -> Int
 pub fn[B] ConsumerService::registry(Self[B]) -> @registry.Registry
-pub fn[B : @backend.QueueBackend] ConsumerService::reserve_once(Self[B]) -> Array[@core.Lease] raise
-pub fn[B : @backend.QueueBackend] ConsumerService::run_heartbeat_cycle(Self[B]) -> Unit raise
-pub fn[B : @backend.QueueBackend] ConsumerService::run_reaper_cycle(Self[B]) -> Unit raise
+pub async fn[B : @backend.QueueBackend] ConsumerService::reserve_once(Self[B]) -> Array[@core.Lease]
+pub async fn[B : @backend.QueueBackend] ConsumerService::run_heartbeat_cycle(Self[B]) -> Unit
+pub async fn[B : @backend.QueueBackend] ConsumerService::run_reaper_cycle(Self[B]) -> Unit
 pub fn[B] ConsumerService::runtime_metrics(Self[B]) -> ConsumerRuntimeMetrics
 pub async fn[B] ConsumerService::sleep_until_next_poll(Self[B]) -> Unit
 pub fn[B] ConsumerService::snapshot(Self[B]) -> ConsumerSnapshot

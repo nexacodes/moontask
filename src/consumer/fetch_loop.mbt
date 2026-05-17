@@ -1,7 +1,7 @@
 ///|
-pub fn[B : @backend.QueueBackend] ConsumerService::reserve_once(
+pub async fn[B : @backend.QueueBackend] ConsumerService::reserve_once(
   self : ConsumerService[B],
-) -> Array[@core.Lease] raise {
+) -> Array[@core.Lease] {
   guard self.lifecycle == Running else { return [] }
   let available_slots = self.available_worker_slots()
   guard available_slots > 0 else { return [] }

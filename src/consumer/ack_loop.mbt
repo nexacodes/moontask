@@ -62,11 +62,11 @@ fn[B] ConsumerService::submit_attempt_result(
 }
 
 ///|
-fn[B : @backend.QueueBackend] ConsumerService::ack_lease(
+async fn[B : @backend.QueueBackend] ConsumerService::ack_lease(
   self : ConsumerService[B],
   lease : @core.Lease,
   finished_at_ms : Int64,
-) -> Unit raise {
+) -> Unit {
   let started_at_ms = (self.clock.now_ms)()
   self.backend.ack(lease.lease_id, finished_at_ms)
   self.ack_calls = self.ack_calls + 1
@@ -76,13 +76,13 @@ fn[B : @backend.QueueBackend] ConsumerService::ack_lease(
 }
 
 ///|
-pub fn[B : @backend.QueueBackend] ConsumerService::nack_retry_lease(
+pub async fn[B : @backend.QueueBackend] ConsumerService::nack_retry_lease(
   self : ConsumerService[B],
   lease : @core.Lease,
   error_message : String,
   next_visible_at_ms : Int64,
   finished_at_ms : Int64,
-) -> Unit raise {
+) -> Unit {
   self.backend.nack_retry(
     lease.lease_id,
     error_message,
@@ -94,19 +94,19 @@ pub fn[B : @backend.QueueBackend] ConsumerService::nack_retry_lease(
 }
 
 ///|
-pub fn[B : @backend.QueueBackend] ConsumerService::nack_dead_lease(
+pub async fn[B : @backend.QueueBackend] ConsumerService::nack_dead_lease(
   self : ConsumerService[B],
   lease : @core.Lease,
   error_message : String,
   finished_at_ms : Int64,
-) -> Unit raise {
+) -> Unit {
   self.backend.nack_dead(lease.lease_id, error_message, finished_at_ms)
   self.nack_dead_calls = self.nack_dead_calls + 1
   mark_lease_finished(self, lease.lease_id)
 }
 
 ///|
-fn[B : @backend.QueueBackend] apply_success_result(
+async fn[B : @backend.QueueBackend] apply_success_result(
   consumer : ConsumerService[B],
   lease : @core.Lease,
   event : @core.ProcessEvent,
