@@ -1,0 +1,10 @@
+{
+  "name": "nexacodes/moontask_examples/order_email_demo",
+  "version": "0.1.0",
+  "deps": {
+    "moonbitlang/async": "0.17.0",
+    "nexacodes/moontask": "0.1.0"
+  },
+  "source": "src",
+  "preferred-target": "native"
+}

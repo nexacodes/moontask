@@ -1,0 +1,4 @@
+members = [
+  "..",
+  "./order_email_demo",
+]
