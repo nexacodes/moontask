@@ -1,3 +1,5 @@
 import {
-  "nexacodes/moontask" @taskq,
+  "nexacodes/moontask/backend" @backend,
+  "nexacodes/moontask/core" @core,
+  "moonbitlang/core/test" @test,
 }

@@ -1,0 +1,7 @@
+import {
+  "nexacodes/moontask/core" @core,
+}
+
+import {
+  "moonbitlang/core/test" @test,
+} for "test"

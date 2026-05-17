@@ -1,0 +1,38 @@
+// Generated using `moon info`, DON'T EDIT IT
+package "nexacodes/moontask/registry"
+
+import {
+  "nexacodes/moontask/core",
+}
+
+// Values
+pub fn[A] max_attempts_for_task(@core.Task[A], Int?) -> Int
+
+pub fn new_registry() -> Registry
+
+pub fn[A] register_task(Registry, @core.TaskOptions[A]) -> @core.Task[A] raise
+
+pub fn registry_retry_policy(Registry, String) -> @core.RetryPolicy raise
+
+pub async fn run_registered_fallback(Registry, @core.TaskContext, @core.JobRecord, Error) -> Unit
+
+pub async fn run_registered_job(Registry, @core.TaskContext, @core.JobRecord) -> Unit
+
+// Errors
+
+// Types and methods
+pub struct Registry {
+  mut next_task_id : Int
+  task_names : Array[String]
+  specs : Map[String, TaskSpec]
+}
+pub fn Registry::contains(Self, String) -> Bool
+pub fn Registry::task_count(Self) -> Int
+pub fn Registry::task_names(Self) -> Array[String]
+
+type TaskSpec
+
+// Type aliases
+
+// Traits
+

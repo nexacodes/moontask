@@ -1,0 +1,175 @@
+// Generated using `moon info`, DON'T EDIT IT
+package "nexacodes/moontask/core"
+
+import {
+  "moonbitlang/core/debug",
+}
+
+// Values
+pub fn bytes_codec() -> Codec[Bytes]
+
+pub fn default_enqueue_options() -> EnqueueOptions
+
+pub fn empty_stats_snapshot(Bool) -> StatsSnapshot
+
+pub fn once_in_period(String, String, Int64, Int64) -> String
+
+pub fn retry_policy_max_attempts(RetryPolicy) -> Int
+
+pub fn system_runtime_clock() -> RuntimeClock
+
+// Errors
+pub(all) suberror QueueError {
+  DuplicateTask(String)
+  DuplicateJob(String)
+  TaskNotFound(String)
+  QueueClosed(String)
+  LeaseNotFound(String)
+  BackendFailure(String)
+  StateInvariant(String)
+} derive(Eq, ToJson, @debug.Debug)
+
+// Types and methods
+pub(all) enum AttemptOutcome {
+  Succeeded
+  FailedWillRetry
+  FailedDead
+  Cancelled
+} derive(Eq, ToJson, @debug.Debug)
+
+pub(all) struct Codec[A] {
+  encode : (A) -> Bytes raise
+  decode : (Bytes) -> A raise
+}
+
+pub(all) struct EnqueueOptions {
+  delay_ms : Int
+  dedupe_key : String?
+  schedule_at_ms : Int64?
+  timeout_ms : Int?
+  max_attempts_override : Int?
+} derive(Eq, ToJson, @debug.Debug)
+
+pub(all) struct JobRecord {
+  job_id : String
+  queue_name : String
+  task_name : String
+  payload : Bytes
+  status : JobStatus
+  attempt : Int
+  max_attempts : Int
+  dedupe_key : String?
+  created_at_ms : Int64
+  visible_at_ms : Int64
+  lease_id : String?
+  lease_owner : String?
+  lease_deadline_ms : Int64?
+  started_at_ms : Int64?
+  finished_at_ms : Int64?
+  timeout_ms : Int?
+  deadline_ms : Int64?
+  last_error : String?
+  trace_id : String?
+} derive(Eq, ToJson, @debug.Debug)
+
+pub(all) enum JobStatus {
+  Pending
+  Scheduled
+  Reserved
+  Running
+  RetryWaiting
+  Succeeded
+  Dead
+  Cancelled
+} derive(Eq, ToJson, @debug.Debug)
+
+pub(all) struct Lease {
+  lease_id : String
+  queue_name : String
+  consumer_id : String
+  leased_at_ms : Int64
+  lease_deadline_ms : Int64
+  job : JobRecord
+} derive(Eq, ToJson, @debug.Debug)
+
+pub(all) struct ProcessEvent {
+  queue_name : String
+  task_name : String
+  job_id : String
+  dedupe_key : String?
+  attempt : Int
+  max_attempts : Int
+  enqueued_at_ms : Int64
+  visible_at_ms : Int64
+  started_at_ms : Int64
+  deadline_ms : Int64?
+} derive(Eq, ToJson, @debug.Debug)
+
+pub(all) struct ProcessResult {
+  outcome : AttemptOutcome
+  error_message : String?
+  duration_ms : Int64
+  finished_at_ms : Int64
+  next_visible_at_ms : Int64?
+} derive(Eq, ToJson, @debug.Debug)
+
+pub(all) enum RetryPolicy {
+  NoRetry
+  Fixed(max_attempts~ : Int, delay_ms~ : Int)
+  Exponential(max_attempts~ : Int, initial_delay_ms~ : Int, factor~ : Double, max_delay_ms~ : Int)
+} derive(Eq, ToJson, @debug.Debug)
+
+pub(all) struct RuntimeClock {
+  now_ms : () -> Int64
+  sleep_ms : async (Int) -> Unit
+}
+
+pub(all) struct StatsSnapshot {
+  pending : Int
+  scheduled : Int
+  reserved : Int
+  running : Int
+  retry_waiting : Int
+  succeeded : Int
+  retried : Int
+  failed : Int
+  dead : Int
+  cancelled : Int
+  paused : Bool
+} derive(Eq, ToJson, @debug.Debug)
+
+pub(all) struct Task[A] {
+  id : Int
+  name : String
+  codec : Codec[A]
+  retry : RetryPolicy
+}
+
+pub(all) struct TaskContext {
+  queue_name : String
+  job_id : String
+  attempt : Int
+  max_attempts : Int
+  enqueued_at_ms : Int64
+  started_at_ms : Int64
+  deadline_ms : Int64?
+  dedupe_key : String?
+} derive(Eq, ToJson, @debug.Debug)
+
+pub(all) struct TaskOptions[A] {
+  name : String
+  codec : Codec[A]
+  retry : RetryPolicy
+  handler : async (TaskContext, A) -> Unit
+  fallback : (async (TaskContext, A, Error) -> Unit)?
+}
+
+// Type aliases
+pub type JobId = String
+
+// Traits
+pub(open) trait Hook {
+  before_process(Self, ProcessEvent) -> Unit raise
+  after_process(Self, ProcessEvent, ProcessResult) -> Unit raise
+}
+

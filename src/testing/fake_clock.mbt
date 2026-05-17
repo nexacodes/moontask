@@ -10,7 +10,7 @@ pub fn new_fake_clock(start_ms : Int64) -> FakeClock {
 }
 
 ///|
-pub fn FakeClock::runtime_clock(self : FakeClock) -> @taskq.RuntimeClock {
+pub fn FakeClock::runtime_clock(self : FakeClock) -> @core.RuntimeClock {
   {
     now_ms: fn() { self.current_ms },
     sleep_ms: fn(delay_ms : Int) {
