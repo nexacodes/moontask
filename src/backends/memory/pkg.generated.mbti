@@ -1,0 +1,27 @@
+// Generated using `moon info`, DON'T EDIT IT
+package "nexacodes/moontask/backends/memory"
+
+import {
+  "nexacodes/moontask/backend",
+  "nexacodes/moontask/core",
+}
+
+// Values
+pub fn new_mem_backend() -> MemBackend
+
+// Errors
+
+// Types and methods
+pub struct MemBackend {
+  mut next_lease_id : Int
+  jobs : Map[String, @core.JobRecord]
+  leases : Map[String, @core.Lease]
+  paused_queues : Map[String, String]
+  dedupe_index : Map[String, String]
+}
+pub impl @backend.QueueBackend for MemBackend
+
+// Type aliases
+
+// Traits
+

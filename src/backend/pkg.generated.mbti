@@ -1,0 +1,30 @@
+// Generated using `moon info`, DON'T EDIT IT
+package "nexacodes/moontask/backend"
+
+import {
+  "nexacodes/moontask/core",
+}
+
+// Values
+
+// Errors
+
+// Types and methods
+
+// Type aliases
+
+// Traits
+pub(open) trait QueueBackend {
+  enqueue(Self, @core.JobRecord) -> String raise
+  reserve_batch(Self, String, String, Int, Int, Int64) -> Array[@core.Lease] raise
+  mark_running(Self, String, Int64, Int64?) -> @core.Lease raise
+  ack(Self, String, Int64) -> Unit raise
+  nack_retry(Self, String, String, Int64, Int64) -> Unit raise
+  nack_dead(Self, String, String, Int64) -> Unit raise
+  extend_lease(Self, String, Int64) -> Unit raise
+  reap_expired_leases(Self, Int64) -> Int raise
+  pause(Self, String, String) -> Unit raise
+  resume_queue(Self, String) -> Unit raise
+  stats(Self, String) -> @core.StatsSnapshot raise
+}
+

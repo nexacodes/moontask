@@ -1,0 +1,12 @@
+import {
+  "nexacodes/moontask/backend" @backend,
+  "nexacodes/moontask/core" @core,
+}
+
+import {
+  "moonbitlang/async",
+  "moonbitlang/core/test" @test,
+  "nexacodes/moontask/consumer" @consumer,
+  "nexacodes/moontask/registry",
+  "nexacodes/moontask/testing",
+} for "test"

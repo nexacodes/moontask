@@ -1,8 +1,0 @@
-import {
-  "nexacodes/moontask" @taskq,
-  "nexacodes/moontask/mem" @mem,
-}
-
-options(
-  "is-main": true,
-)
