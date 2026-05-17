@@ -1,0 +1,9 @@
+import {
+  "nexacodes/moontask" @taskq,
+  "nexacodes/moontask/mem" @mem,
+  "moonbitlang/async",
+}
+
+options(
+  "is-main": true,
+)

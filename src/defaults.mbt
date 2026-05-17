@@ -19,7 +19,17 @@ pub fn default_enqueue_options() -> EnqueueOptions {
 
 ///|
 pub fn default_queue_options(queue_name : String) -> QueueOptions {
-  { queue_name, max_concurrency: 1 }
+  {
+    queue_name,
+    max_concurrency: 1,
+    pause_after_failures: 0,
+    rate_limit_per_second: None,
+  }
+}
+
+///|
+pub fn default_runtime_options() -> QueueRuntimeOptions {
+  { hooks: [], clock: system_runtime_clock() }
 }
 
 ///|

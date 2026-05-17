@@ -37,11 +37,11 @@ pub fn phase_two_runtime_plan(options : @taskq.QueueOptions) -> RuntimePlan {
     lifecycle: Running,
     max_concurrency: options.max_concurrency,
     command_names: [
-      "Enqueue", "Dispatch", "CompleteSuccess", "CompleteFailure", "PollStats", "Shutdown",
+      "Enqueue", "Dispatch", "Ack", "Nack", "PollStats", "Pause", "Resume", "Shutdown",
     ],
     notes: [
-      "Phase two keeps a jobs table, ready queue, and inflight index for in-process delivery guarantees.",
-      "Workers execute outside the queue state owner and report completion back through queue methods.",
+      "The in-memory runtime keeps jobs, dedupe index, ready queue, delayed queue, and inflight index in one state owner.",
+      "Workers execute outside the queue state owner and report completion back through manager-style commands.",
     ],
   }
 }

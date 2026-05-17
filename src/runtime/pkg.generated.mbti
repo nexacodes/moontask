@@ -17,15 +17,15 @@ pub fn phase_two_runtime_plan(@moontask.QueueOptions) -> RuntimePlan
 
 // Types and methods
 pub(all) enum Command {
-  Enqueue(@moontask.JobEnvelope)
+  Enqueue(job~ : @moontask.JobEnvelope)
   Dispatch
-  CompleteSuccess(String)
-  CompleteFailure(String, String)
+  Ack(job_id~ : String)
+  Nack(job_id~ : String, error_message~ : String)
   PollStats
-  Shutdown(Bool, Int)
-  Pause(String)
+  Shutdown(graceful~ : Bool, timeout_ms~ : Int)
+  Pause(reason~ : String)
   Resume
-  Cancel(String, String)
+  Cancel(job_id~ : String, reason~ : String)
 } derive(Eq, ToJson, @debug.Debug)
 
 pub(all) enum QueueLifecycle {

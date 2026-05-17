@@ -1,12 +1,12 @@
 ///|
 pub(all) enum Command {
-  Enqueue(@taskq.JobEnvelope)
+  Enqueue(job~ : @taskq.JobEnvelope)
   Dispatch
-  CompleteSuccess(String)
-  CompleteFailure(String, String)
+  Ack(job_id~ : String)
+  Nack(job_id~ : String, error_message~ : String)
   PollStats
-  Shutdown(Bool, Int)
-  Pause(String)
+  Shutdown(graceful~ : Bool, timeout_ms~ : Int)
+  Pause(reason~ : String)
   Resume
-  Cancel(String, String)
+  Cancel(job_id~ : String, reason~ : String)
 } derive(Eq, ToJson, Debug)

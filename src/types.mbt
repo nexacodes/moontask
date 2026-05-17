@@ -58,6 +58,8 @@ pub(all) struct EnqueueOptions {
 pub(all) struct QueueOptions {
   queue_name : String
   max_concurrency : Int
+  pause_after_failures : Int
+  rate_limit_per_second : Int?
 } derive(Eq, ToJson, Debug)
 
 ///|

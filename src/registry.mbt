@@ -99,6 +99,20 @@ pub async fn run_registered_job(
 }
 
 ///|
+pub async fn run_registered_fallback(
+  registry : Registry,
+  context : TaskContext,
+  job : JobEnvelope,
+  err : Error,
+) -> Unit {
+  let spec = find_task_spec(registry, job.task_name)
+  match spec._fallback {
+    Some(fallback) => fallback(context, job.payload, err)
+    None => ()
+  }
+}
+
+///|
 pub fn registry_retry_policy(
   registry : Registry,
   task_name : String,
