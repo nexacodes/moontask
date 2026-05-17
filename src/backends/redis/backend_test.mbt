@@ -55,6 +55,13 @@ async test "redis backend extends leases before redelivery" {
 }
 
 ///|
+async test "redis backend ignores extend for completed leases" {
+  try! @testing.assert_backend_contract_extend_missing_lease_is_noop(
+    try! new_clean_backend("moontask:test:redis:extend-missing"),
+  )
+}
+
+///|
 async test "redis backend pause blocks reservation until resumed" {
   try! @testing.assert_backend_contract_pause_and_resume(
     try! new_clean_backend("moontask:test:redis:pause"),

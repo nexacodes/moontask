@@ -54,12 +54,12 @@ fn build_email_payload(order : Order) -> OrderEmailPayload {
 }
 
 ///|
-pub fn[B : @backend.QueueBackend] OrderService::create_order(
+pub async fn[B : @backend.QueueBackend] OrderService::create_order(
   self : OrderService[B],
   user_email : String,
   items : Array[String],
   amount_cents : Int,
-) -> Order raise {
+) -> Order {
   let order_id = "ord-\{self.next_order_sequence}"
   self.next_order_sequence = self.next_order_sequence + 1
   let order : Order = {
@@ -86,10 +86,10 @@ pub fn[B : @backend.QueueBackend] OrderService::create_order(
 }
 
 ///|
-fn[B : @backend.QueueBackend] queue_stats(
+async fn[B : @backend.QueueBackend] queue_stats(
   backend : B,
   queue_name : String,
-) -> @core.StatsSnapshot raise {
+) -> @core.StatsSnapshot {
   backend.stats(queue_name)
 }
 

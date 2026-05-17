@@ -393,7 +393,7 @@ pub impl @backend.QueueBackend for MemBackend with extend_lease(
 ) raise {
   let lease = match self.leases.get(lease_id) {
     Some(lease) => lease
-    None => raise @core.QueueError::LeaseNotFound(lease_id)
+    None => return
   }
   let updated_lease : @core.Lease = {
     ..lease,

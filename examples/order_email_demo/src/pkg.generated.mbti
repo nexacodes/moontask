@@ -1,0 +1,25 @@
+// Generated using `moon info`, DON'T EDIT IT
+package "nexacodes/moontask_examples/order_email_demo"
+
+import {
+  "moonbitlang/core/debug",
+  "moonbitlang/core/json",
+  "nexacodes/moontask/backend",
+}
+
+// Values
+
+// Errors
+
+// Types and methods
+type Order derive(ToJson, @debug.Debug)
+
+type OrderEmailPayload derive(ToJson, @debug.Debug, @json.FromJson)
+
+type OrderService[B]
+pub async fn[B : @backend.QueueBackend] OrderService::create_order(Self[B], String, Array[String], Int) -> Order
+
+// Type aliases
+
+// Traits
+

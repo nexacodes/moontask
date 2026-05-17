@@ -1,0 +1,9 @@
+import {
+  "moonbitlang/async",
+  "moonbitlang/core/env",
+  "nexacodes/moontask_examples/redis_order_email_demo" @demo,
+}
+
+options(
+  "is-main": true,
+)

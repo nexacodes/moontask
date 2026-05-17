@@ -1,0 +1,13 @@
+import {
+  "moonbitlang/async",
+  "moonbitlang/core/env",
+  "moonbitlang/core/string" @string,
+  "nexacodes/moontask/admin",
+  "nexacodes/moontask/consumer",
+  "nexacodes/moontask/registry",
+  "nexacodes/moontask_examples/redis_order_email_demo" @demo,
+}
+
+options(
+  "is-main": true,
+)

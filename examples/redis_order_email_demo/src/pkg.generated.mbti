@@ -1,0 +1,51 @@
+// Generated using `moon info`, DON'T EDIT IT
+package "nexacodes/moontask_examples/redis_order_email_demo"
+
+import {
+  "moonbitlang/core/debug",
+  "moonbitlang/core/json",
+  "nexacodes/moontask/backends/redis",
+  "nexacodes/moontask/core",
+  "nexacodes/moontask/registry",
+}
+
+// Values
+pub fn build_payload(Int) -> BulkEmailPayload
+
+pub fn bulk_email_codec() -> @core.Codec[BulkEmailPayload]
+
+pub fn new_demo_backend() -> @redis.RedisBackend
+
+pub let queue_name : String
+
+pub let redis_host : String
+
+pub let redis_port : Int
+
+pub let redis_prefix : String
+
+pub fn register_consumer_task(@registry.Registry, String) -> @core.Task[BulkEmailPayload] raise
+
+pub fn register_producer_task(@registry.Registry) -> @core.Task[BulkEmailPayload] raise
+
+pub async fn reset_demo_keys() -> Int
+
+pub let task_name : String
+
+pub async fn wait_until_processed(@redis.RedisBackend, Int, Int) -> @core.StatsSnapshot
+
+// Errors
+
+// Types and methods
+pub struct BulkEmailPayload {
+  sequence_no : Int
+  user_email : String
+  subject : String
+  body : String
+  simulated_work_ms : Int
+} derive(ToJson, @debug.Debug, @json.FromJson)
+
+// Type aliases
+
+// Traits
+

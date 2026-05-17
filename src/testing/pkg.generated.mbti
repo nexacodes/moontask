@@ -11,6 +11,8 @@ pub async fn[B : @backend.QueueBackend] assert_backend_contract_expired_lease_re
 
 pub async fn[B : @backend.QueueBackend] assert_backend_contract_extend_lease(B) -> Unit
 
+pub async fn[B : @backend.QueueBackend] assert_backend_contract_extend_missing_lease_is_noop(B) -> Unit
+
 pub async fn[B : @backend.QueueBackend] assert_backend_contract_lease_exclusivity(B) -> Unit
 
 pub async fn[B : @backend.QueueBackend] assert_backend_contract_pause_and_resume(B) -> Unit

@@ -165,6 +165,27 @@ pub async fn[B : @backend.QueueBackend] assert_backend_contract_extend_lease(
 }
 
 ///|
+pub async fn[B : @backend.QueueBackend] assert_backend_contract_extend_missing_lease_is_noop(
+  backend : B,
+) -> Unit {
+  ignore(
+    backend.enqueue(
+      build_backend_contract_job("job-extend-missing-1", "emails", 0L),
+    ),
+  )
+
+  let leases = backend.reserve_batch("emails", "consumer-a", 1, 100, 100L)
+  @test.assert_eq(leases.length(), 1)
+  backend.ack(leases[0].lease_id, 120L)
+  backend.extend_lease(leases[0].lease_id, 300L)
+
+  let stats = backend.stats("emails")
+  @test.assert_eq(stats.succeeded, 1)
+  @test.assert_eq(stats.running, 0)
+  @test.assert_eq(stats.reserved, 0)
+}
+
+///|
 pub async fn[B : @backend.QueueBackend] assert_backend_contract_pause_and_resume(
   backend : B,
 ) -> Unit {

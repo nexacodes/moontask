@@ -1,4 +1,5 @@
 members = [
   "..",
   "./order_email_demo",
+  "./redis_order_email_demo",
 ]

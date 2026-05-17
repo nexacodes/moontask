@@ -35,6 +35,13 @@ async test "mem backend extends leases before redelivery" {
 }
 
 ///|
+async test "mem backend ignores extend for completed leases" {
+  try! @testing.assert_backend_contract_extend_missing_lease_is_noop(
+    new_mem_backend(),
+  )
+}
+
+///|
 async test "mem backend pause blocks reservation until resumed" {
   try! @testing.assert_backend_contract_pause_and_resume(new_mem_backend())
 }

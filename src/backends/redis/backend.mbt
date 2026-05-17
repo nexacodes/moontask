@@ -798,7 +798,10 @@ pub impl @backend.QueueBackend for RedisBackend with extend_lease(
 ) raise {
   let client = open_client(self)
   defer client.close()
-  let lease = load_stored_lease_required(self, client, lease_id)
+  let lease = match load_stored_lease(self, client, lease_id) {
+    Some(lease) => lease
+    None => return
+  }
   ignore(
     get_int(
       client,
