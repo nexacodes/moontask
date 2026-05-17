@@ -10,5 +10,13 @@
   "keywords": [],
   "description": "",
   "source": "src",
-  "preferred-target": "native"
+  "preferred-target": "native",
+  "exclude": [
+      "AGENTS.md",
+      "docs",
+      "examples",
+      "**/*_test.mbt",
+      "**/*_wbtest.mbt",
+      ".DS_Store"
+    ]
 }
