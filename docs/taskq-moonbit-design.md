@@ -48,18 +48,23 @@
 - 与 Go `taskq` 的 API 逐字符兼容
 - 先做很多后端
 
-第一版只做一个生产后端即可，但这个后端必须 durable。优先顺序建议是：
+本项目对标 `taskq`，因此首批支持的后端目标明确改为：
 
-1. PostgreSQL
-2. Redis
-3. 其他云队列后端
+1. Redis
+2. 内存后端
 
-如果没有明确基础设施约束，我建议优先 PostgreSQL。原因：
+其中：
 
-- 事务语义清晰
-- 去重与调度表达能力强
-- 管理与排障成本低
-- 对 MoonBit 首版实现更稳
+- Redis 是第一生产后端。
+- 内存后端用于本地开发、单测、语义验证和快速 demo。
+
+后续再考虑：
+
+- SQS 类后端
+- IronMQ 类后端
+- 其他云队列后端
+
+这里不再以 PostgreSQL 作为第一目标，不是因为 PostgreSQL 不适合做任务队列，而是因为本项目的迁移目标是“对标 `taskq` 的后端形态与使用方式”，因此优先 Redis + mem 更符合目标产品边界。
 
 ## 2. 新的产品定义
 
@@ -69,14 +74,19 @@
 
 1. Producer API
    业务侧注册任务并入队。
-2. Durable backend
-   持久化消息、lease、schedule、retry、dedupe。
+2. Backend
+   负责消息存储、lease、schedule、retry、dedupe。
 3. Consumer runtime
    常驻后台拉取、执行、ack/nack、续租、恢复。
 4. Admin/observability
    stats、hooks、health、pause/resume、inspect、benchmark。
 
 这四层缺一不可。
+
+同时要明确：
+
+- Redis 后端是第一生产目标。
+- `mem` 后端不是生产主目标，但必须保留，因为它对齐 `taskq` 的 `memqueue` 定位。
 
 ## 3. 核心运行语义
 
@@ -179,16 +189,17 @@ ack/nack 必须由 backend 中央落地，不能只靠内存状态。
    durable backend trait。
 4. `consumer`
    常驻 consumer runtime。
-5. `backends/postgres`
+5. `backends/redis`
    第一版生产后端。
 6. `testing`
    fake clock、backend contract tests、stress helpers。
 
 现有 `mem` 包调整定位：
 
-- 不再作为生产目标
-- 改为 `backends/memtest` 或保留 `mem`
-- 只用于状态机测试、本地 demo、快速回归
+- 对标 `taskq/memqueue`
+- 保留 `mem`
+- 用于本地开发、单测、状态机验证、快速回归
+- 明确不承诺跨进程 durable
 
 ## 4.2 推荐目录
 
@@ -217,13 +228,14 @@ src/
 │   ├── ack_loop.mbt
 │   ├── heartbeat.mbt
 │   └── shutdown.mbt
-├── backends/postgres/
+├── backends/redis/
 │   ├── moon.pkg
-│   ├── schema.mbt
 │   ├── enqueue.mbt
 │   ├── reserve.mbt
 │   ├── ack.mbt
 │   ├── retry.mbt
+│   ├── dedupe.mbt
+│   ├── lease.mbt
 │   └── admin.mbt
 ├── mem/
 │   ├── moon.pkg
@@ -377,15 +389,28 @@ worker 不直接修改 queue state，不直接改 durable row。
 
 关闭语义必须可测试且可观测。
 
-## 8. 数据模型
+## 8. Redis 数据模型
 
-如果第一版采用 PostgreSQL，建议至少有一张主表：
+第一版生产后端采用 Redis，因此数据模型应围绕 Redis key 设计，而不是关系表。
 
-```text
-jobs
-```
+建议至少包含这些结构：
 
-字段建议：
+1. `job hash`
+   `taskq:job:{job_id}`
+2. `ready list` 或 `ready stream`
+   `taskq:queue:{queue_name}:ready`
+3. `scheduled zset`
+   `taskq:queue:{queue_name}:scheduled`
+4. `lease zset`
+   `taskq:queue:{queue_name}:leases`
+5. `dead zset` 或 `dead list`
+   `taskq:queue:{queue_name}:dead`
+6. `dedupe keys`
+   `taskq:dedupe:{queue_name}:{dedupe_key}`
+7. `queue control`
+   `taskq:queue:{queue_name}:meta`
+
+`job hash` 建议字段：
 
 - `job_id`
 - `queue_name`
@@ -406,18 +431,20 @@ jobs
 - `timeout_ms`
 - `trace_id`
 
-另可选：
+设计原则：
 
-- `job_history`
-- `dead_jobs`
-- `job_events`
+- job 详情单独存，队列结构只存 `job_id` 或 `(score, job_id)`
+- schedule 与 lease 一律用 zset，便于按时间扫描
+- dedupe 使用独立 key 或 hash，不依赖单进程内存
+- pause/resume、stats 元信息放入 queue meta key
 
-第一版为了实现速度，可以先不拆历史表，但必须至少保留：
+第一版为了实现速度，可以先不做完整历史流水，但至少必须保留：
 
 - 当前状态
 - 最后错误
 - attempt
 - lease 信息
+- dead job 可检查性
 
 ## 9. 重试、超时、fallback
 
@@ -608,15 +635,15 @@ pub(open) trait Hook {
 
 - contract tests 可在 fake backend 上跑通
 
-## P2: 生产 backend MVP
+## P2: Redis backend MVP
 
-- 实现 PostgreSQL backend
+- 实现 Redis backend
 - enqueue / reserve / ack / nack / dedupe
 - 基础 stats
 
 验收：
 
-- 进程重启后任务不丢
+- Redis 持久化开启时，进程重启后任务不静默丢失
 - 两个 consumer 实例可并发消费
 
 ## P3: 常驻 consumer runtime
@@ -667,14 +694,49 @@ pub(open) trait Hook {
 
 - 可观测、可排障、可手工干预
 
-## 16. 对当前代码库的影响
+## 16. Redis 与 mem 的职责划分
+
+为了对标 `taskq`，两个首批后端的职责应明确区分：
+
+### 16.1 `mem`
+
+`mem` 后端用于：
+
+- 单元测试
+- fake clock 驱动测试
+- API 冒烟测试
+- 本地 demo
+- 无外部依赖的快速迭代
+
+`mem` 不负责：
+
+- durable persistence
+- 多实例共享消费
+- crash recovery
+
+### 16.2 `redis`
+
+`redis` 后端用于：
+
+- 生产环境
+- 多 consumer 实例并发
+- 延迟任务与重试调度
+- lease / visibility timeout
+- 去重键共享
+
+需要明确一个工程前提：
+
+- Redis 后端的“生产可用”依赖 Redis 自身持久化与部署策略。
+- 如果 Redis 未开启合适的持久化与高可用策略，队列语义上限也会被基础设施拉低。
+
+## 17. 对当前代码库的影响
 
 从这版设计开始，当前代码应按如下方式理解：
 
 - `src/mem/*`
-  保留为状态机与 API 原型，不再承诺生产可用。
+  保留为 `taskq/memqueue` 对标实现、状态机验证层和测试后端。
 - `process_next/process_all`
-  保留给测试、demo、fake backend，不作为生产主接口。
+  保留给测试、demo、mem 后端，不作为 Redis 生产主接口。
 - 新的生产主线应围绕：
   - `Producer`
   - `QueueBackend`
@@ -685,17 +747,21 @@ pub(open) trait Hook {
 
 1. 新建 `backend/` 抽象
 2. 新建 `consumer/` 常驻 runtime
-3. 选定并实现第一个 durable backend
+3. 实现 `redis` backend
+4. 回头把 `mem` 适配到统一 backend contract
 
-## 17. 最终结论
+## 18. 最终结论
 
 此前设计的问题不在于“缺几个特性”，而在于目标被设成了“单进程内存队列”，这天然会把系统带向原型。
 
 新的迁移目标必须明确：
 
+- 对标 `taskq` 的 MoonBit 迁移项目，第一目标后端是 `redis` 和 `mem`
+- 其中真正的生产主线是 `redis + resident consumer runtime`
+- `mem` 负责开发、测试和原型验证
 - 生产可用的任务队列不是 `enqueue + process_all`
-- 它必须是 `durable backend + resident consumer runtime + lease/ack/nack + operations`
+- 它必须是 `redis backend + resident consumer runtime + lease/ack/nack + operations`
 
 一句话总结：
 
-> 当前内存实现可以保留，但它不再是目标产品，只是下一版生产系统的验证底座。
+> 当前内存实现可以保留并继续维护，但它的角色是 `taskq/memqueue` 对标后端；真正的生产迁移主线应立即转向 Redis runtime。
