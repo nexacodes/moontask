@@ -65,5 +65,18 @@ fn[B] inflight_leases_snapshot(
   for lease in consumer.inflight_leases.values() {
     leases.push(lease)
   }
+  leases.sort_by(fn(lhs, rhs) { lhs.lease_id.compare(rhs.lease_id) })
   leases
+}
+
+///|
+fn[B] reset_inflight_tracking(consumer : ConsumerService[B]) -> Unit {
+  let lease_ids = []
+  for lease_id in consumer.inflight_leases.keys() {
+    lease_ids.push(lease_id)
+  }
+  for lease_id in lease_ids {
+    consumer.inflight_leases.remove(lease_id)
+  }
+  consumer.inflight_count = 0
 }

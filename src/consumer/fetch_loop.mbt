@@ -21,10 +21,28 @@ pub fn[B : @backend.QueueBackend] ConsumerService::reserve_once(
 pub async fn[B] ConsumerService::sleep_until_next_poll(
   self : ConsumerService[B],
 ) -> Unit {
-  let delay_ms = if self.lifecycle == Running {
+  let base_delay_ms = if self.lifecycle == Running {
     self.options.poll_interval_ms
   } else {
     self.options.pause_poll_interval_ms
   }
-  (self.clock.sleep_ms)(delay_ms)
+  let delay_ms = match self.stop_deadline_ms {
+    Some(stop_deadline_ms) if self.lifecycle == Stopping => {
+      let remaining_ms = Int64::to_int(
+        Int64::max(0L, stop_deadline_ms - (self.clock.now_ms)()),
+      )
+      Int::min(base_delay_ms, remaining_ms)
+    }
+    _ => base_delay_ms
+  }
+  guard delay_ms > 0 else { return }
+  @async.with_task_group(async fn(group) {
+    self.sleep_interrupt = Some(fn() {
+      ignore(try? group.return_immediately(()))
+    })
+    defer {
+      self.sleep_interrupt = None
+    }
+    (self.clock.sleep_ms)(delay_ms)
+  })
 }

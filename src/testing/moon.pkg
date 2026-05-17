@@ -3,3 +3,7 @@ import {
   "nexacodes/moontask/core" @core,
   "moonbitlang/core/test" @test,
 }
+
+import {
+  "moonbitlang/async",
+} for "test"

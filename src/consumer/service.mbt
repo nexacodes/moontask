@@ -38,6 +38,15 @@ pub(all) struct ConsumerSnapshot {
 } derive(Eq, ToJson, Debug)
 
 ///|
+pub(all) struct ConsumerInspection {
+  snapshot : ConsumerSnapshot
+  accepting_work : Bool
+  inflight_leases : Array[@core.Lease]
+  stop_requested_at_ms : Int64?
+  stop_deadline_ms : Int64?
+} derive(Eq, ToJson, Debug)
+
+///|
 pub struct ConsumerService[B] {
   backend : B
   registry : @registry.Registry
@@ -50,8 +59,12 @@ pub struct ConsumerService[B] {
   mut inflight_count : Int
   mut started_at_ms : Int64?
   mut stopped_at_ms : Int64?
+  mut stop_requested_at_ms : Int64?
+  mut stop_deadline_ms : Int64?
   mut last_heartbeat_at_ms : Int64?
   mut last_reaper_at_ms : Int64?
+  mut runtime_shutdown : (() -> Unit)?
+  mut sleep_interrupt : (() -> Unit)?
 }
 
 ///|
@@ -110,8 +123,12 @@ pub fn[B] ConsumerService::new_with_runtime(
     inflight_count: 0,
     started_at_ms: None,
     stopped_at_ms: None,
+    stop_requested_at_ms: None,
+    stop_deadline_ms: None,
     last_heartbeat_at_ms: None,
     last_reaper_at_ms: None,
+    runtime_shutdown: None,
+    sleep_interrupt: None,
   }
 }
 
@@ -155,6 +172,33 @@ pub fn[B] ConsumerService::snapshot(
 }
 
 ///|
+pub fn[B] ConsumerService::stop_requested_at_ms(
+  self : ConsumerService[B],
+) -> Int64? {
+  self.stop_requested_at_ms
+}
+
+///|
+pub fn[B] ConsumerService::stop_deadline_ms(
+  self : ConsumerService[B],
+) -> Int64? {
+  self.stop_deadline_ms
+}
+
+///|
+pub fn[B] ConsumerService::inspect(
+  self : ConsumerService[B],
+) -> ConsumerInspection {
+  {
+    snapshot: self.snapshot(),
+    accepting_work: self.is_accepting_work(),
+    inflight_leases: inflight_leases_snapshot(self),
+    stop_requested_at_ms: self.stop_requested_at_ms,
+    stop_deadline_ms: self.stop_deadline_ms,
+  }
+}
+
+///|
 pub async fn[B : @backend.QueueBackend] ConsumerService::start(
   self : ConsumerService[B],
 ) -> Unit {
@@ -163,36 +207,39 @@ pub async fn[B : @backend.QueueBackend] ConsumerService::start(
       self.lifecycle = Starting
       self.started_at_ms = Some((self.clock.now_ms)())
       self.stopped_at_ms = None
+      self.stop_requested_at_ms = None
+      self.stop_deadline_ms = None
       self.last_heartbeat_at_ms = None
       self.last_reaper_at_ms = None
       self.lifecycle = Running
       @async.with_task_group(async fn(group) {
-        let loop_task = group.spawn(
-          async fn() {
-            while self.lifecycle == Running ||
-                  self.lifecycle == Starting ||
-                  (self.lifecycle == Stopping && self.inflight_count > 0) {
-              try! self.run_heartbeat_cycle()
-              try! self.run_reaper_cycle()
-              if self.lifecycle == Running || self.lifecycle == Starting {
-                let leases = try! self.reserve_once()
-                for lease in leases {
-                  ignore(
-                    group.spawn(
-                      async fn() { process_lease(self, lease) },
-                      no_wait=true,
-                      allow_failure=true,
-                    ),
-                  )
-                }
-              }
-              self.sleep_until_next_poll()
+        self.runtime_shutdown = Some(fn() {
+          ignore(try? group.return_immediately(()))
+        })
+        defer {
+          self.runtime_shutdown = None
+          self.sleep_interrupt = None
+        }
+        while self.should_continue_runtime() {
+          try! self.run_heartbeat_cycle()
+          try! self.run_reaper_cycle()
+          if self.lifecycle == Running || self.lifecycle == Starting {
+            let leases = try! self.reserve_once()
+            for lease in leases {
+              ignore(
+                group.spawn(
+                  async fn() { process_lease(self, lease) },
+                  no_wait=true,
+                  allow_failure=true,
+                ),
+              )
             }
-          },
-          no_wait=true,
-        )
-        ignore(loop_task.wait())
+          }
+          guard self.should_continue_runtime() else { break }
+          self.sleep_until_next_poll()
+        }
       })
+      reset_inflight_tracking(self)
       self.lifecycle = Stopped
       self.stopped_at_ms = Some((self.clock.now_ms)())
     }
@@ -209,10 +256,19 @@ pub fn[B] ConsumerService::stop(
   self : ConsumerService[B],
   timeout_ms : Int,
 ) -> Unit {
-  ignore(timeout_ms)
   match self.lifecycle {
-    Running | Starting => self.lifecycle = Stopping
+    Running | Starting => {
+      self.stop_requested_at_ms = Some((self.clock.now_ms)())
+      self.stop_deadline_ms = Some(stop_deadline_from_timeout(self, timeout_ms))
+      self.lifecycle = Stopping
+      self.wake_sleeping_runtime()
+      if self.should_force_shutdown() {
+        self.force_runtime_shutdown()
+      }
+    }
     Idle => {
+      self.stop_requested_at_ms = Some((self.clock.now_ms)())
+      self.stop_deadline_ms = Some(stop_deadline_from_timeout(self, timeout_ms))
       self.stopped_at_ms = Some((self.clock.now_ms)())
       self.lifecycle = Stopped
     }

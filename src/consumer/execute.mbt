@@ -125,17 +125,24 @@ async fn[B : @backend.QueueBackend] process_lease(
   let context = build_task_context(running_lease)
   let event = build_process_event(running_lease)
   run_before_hooks(consumer, event)
-  let result : Result[Unit, Error] = try? @registry.run_registered_job(
-    consumer.registry,
-    context,
-    running_lease.job,
-  )
+  let failure = try {
+    @registry.run_registered_job(consumer.registry, context, running_lease.job)
+    None
+  } catch {
+    err if @async.is_cancellation_error(err) => {
+      // Forced shutdown should leave the lease recoverable instead of
+      // translating cooperative task cancellation into a terminal failure.
+      mark_lease_finished(consumer, lease.lease_id)
+      return
+    }
+    err => Some(err)
+  }
   let finished_at_ms = (consumer.clock.now_ms)()
-  let failure = match result {
-    Err(err) => Some(err)
-    Ok(_) if is_attempt_timed_out(finished_at_ms, deadline_ms) =>
+  let failure = match failure {
+    Some(err) => Some(err)
+    None if is_attempt_timed_out(finished_at_ms, deadline_ms) =>
       Some(@core.QueueError::BackendFailure("task exceeded timeout"))
-    Ok(_) => None
+    None => None
   }
   match failure {
     None => {

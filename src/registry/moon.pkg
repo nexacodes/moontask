@@ -3,5 +3,6 @@ import {
 }
 
 import {
+  "moonbitlang/async",
   "moonbitlang/core/test" @test,
 } for "test"
