@@ -1,4 +1,5 @@
 ///|
+/// Returns a codec that stores `Bytes` payloads without transformation.
 pub fn bytes_codec() -> Codec[Bytes] {
   Codec::{
     encode: fn(payload : Bytes) { payload },
@@ -7,6 +8,7 @@ pub fn bytes_codec() -> Codec[Bytes] {
 }
 
 ///|
+/// Returns enqueue options with immediate delivery and no overrides.
 pub fn default_enqueue_options() -> EnqueueOptions {
   {
     delay_ms: 0,
@@ -18,6 +20,7 @@ pub fn default_enqueue_options() -> EnqueueOptions {
 }
 
 ///|
+/// Builds an empty queue statistics snapshot for the paused/running state.
 pub fn empty_stats_snapshot(paused : Bool) -> StatsSnapshot {
   {
     pending: 0,
@@ -35,6 +38,7 @@ pub fn empty_stats_snapshot(paused : Bool) -> StatsSnapshot {
 }
 
 ///|
+/// Resolves the maximum number of attempts allowed by a retry policy.
 pub fn retry_policy_max_attempts(policy : RetryPolicy) -> Int {
   match policy {
     NoRetry => 1

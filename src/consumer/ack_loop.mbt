@@ -76,6 +76,7 @@ async fn[B : @backend.QueueBackend] ConsumerService::ack_lease(
 }
 
 ///|
+/// Marks a failed lease for retry at `next_visible_at_ms`.
 pub async fn[B : @backend.QueueBackend] ConsumerService::nack_retry_lease(
   self : ConsumerService[B],
   lease : @core.Lease,
@@ -94,6 +95,7 @@ pub async fn[B : @backend.QueueBackend] ConsumerService::nack_retry_lease(
 }
 
 ///|
+/// Marks a failed lease as dead and terminal.
 pub async fn[B : @backend.QueueBackend] ConsumerService::nack_dead_lease(
   self : ConsumerService[B],
   lease : @core.Lease,

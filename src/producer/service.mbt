@@ -1,9 +1,11 @@
 ///|
+/// Runtime dependencies used by `Producer`.
 pub(all) struct ProducerRuntimeOptions {
   clock : @core.RuntimeClock
 }
 
 ///|
+/// Enqueues typed tasks into a single queue backed by `B`.
 pub struct Producer[B] {
   backend : B
   queue_name : String
@@ -12,11 +14,13 @@ pub struct Producer[B] {
 }
 
 ///|
+/// Returns producer runtime defaults backed by the system clock.
 pub fn default_producer_runtime_options() -> ProducerRuntimeOptions {
   { clock: @core.system_runtime_clock() }
 }
 
 ///|
+/// Creates a producer bound to `queue_name` with default runtime dependencies.
 pub fn[B] Producer::new(backend : B, queue_name : String) -> Producer[B] {
   Producer::new_with_runtime(
     backend,
@@ -26,6 +30,7 @@ pub fn[B] Producer::new(backend : B, queue_name : String) -> Producer[B] {
 }
 
 ///|
+/// Creates a producer with explicit runtime dependencies.
 pub fn[B] Producer::new_with_runtime(
   backend : B,
   queue_name : String,
@@ -35,6 +40,7 @@ pub fn[B] Producer::new_with_runtime(
 }
 
 ///|
+/// Returns the queue name this producer enqueues into.
 pub fn[B] Producer::queue_name(self : Producer[B]) -> String {
   self.queue_name
 }
@@ -113,6 +119,7 @@ async fn[B : @backend.QueueBackend, A] enqueue_internal(
 }
 
 ///|
+/// Enqueues a task using the task's registration defaults.
 pub async fn[B : @backend.QueueBackend, A] Producer::enqueue(
   self : Producer[B],
   task : @core.Task[A],
@@ -122,6 +129,7 @@ pub async fn[B : @backend.QueueBackend, A] Producer::enqueue(
 }
 
 ///|
+/// Enqueues a task with explicit delivery and retry overrides.
 pub async fn[B : @backend.QueueBackend, A] Producer::enqueue_with_options(
   self : Producer[B],
   task : @core.Task[A],

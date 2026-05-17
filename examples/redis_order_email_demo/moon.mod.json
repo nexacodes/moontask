@@ -1,9 +1,9 @@
 {
   "name": "nexacodes/moontask_examples/redis_order_email_demo",
-  "version": "0.1.0",
+  "version": "0.1.1",
   "deps": {
     "moonbitlang/async": "0.17.0",
-    "nexacodes/moontask": "0.1.0"
+    "nexacodes/moontask": "0.1.1"
   },
   "source": "src",
   "preferred-target": "native"

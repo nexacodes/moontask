@@ -1,4 +1,5 @@
 ///|
+/// In-memory backend intended for tests, examples, and single-process use.
 pub struct MemBackend {
   mut next_lease_id : Int
   jobs : Map[String, @core.JobRecord]
@@ -8,6 +9,7 @@ pub struct MemBackend {
 }
 
 ///|
+/// Creates an empty in-memory backend.
 pub fn new_mem_backend() -> MemBackend {
   {
     next_lease_id: 1,

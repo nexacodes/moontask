@@ -9,6 +9,9 @@ priv struct StoredLease {
 }
 
 ///|
+/// Durable Redis-backed queue backend.
+///
+/// Jobs, leases, queue state, and dedupe keys are stored under `prefix`.
 pub struct RedisBackend {
   host : String
   port : Int
@@ -17,6 +20,7 @@ pub struct RedisBackend {
 }
 
 ///|
+/// Creates a Redis-backed queue backend with a shared client pool.
 pub fn new_redis_backend(
   host : String,
   port : Int,
@@ -556,6 +560,7 @@ const RESERVE_BATCH_SCRIPT = "if redis.call('EXISTS', KEYS[1]) == 1 then return 
 const REAP_EXPIRED_SCRIPT = "local ids = redis.call('ZRANGEBYSCORE', KEYS[1], '-inf', ARGV[1]) for _, lease_id in ipairs(ids) do local lease_key = KEYS[2] .. lease_id local job_id = redis.call('HGET', lease_key, 'job_id') local queue_name = redis.call('HGET', lease_key, 'queue_name') if job_id and queue_name then local job_key = KEYS[3] .. job_id redis.call('HSET', job_key, 'status', ARGV[2], 'visible_at_ms', tostring(ARGV[1]), 'lease_id', '', 'lease_owner', '', 'lease_deadline_ms', '', 'deadline_ms', '') redis.call('ZADD', KEYS[4] .. queue_name .. ':visible', ARGV[1], job_id) end redis.call('ZREM', KEYS[1], lease_id) redis.call('DEL', lease_key) end return #ids"
 
 ///|
+/// Deletes all Redis keys under this backend's configured prefix.
 pub async fn RedisBackend::reset_namespace(self : RedisBackend) -> Unit {
   let client = open_client(self)
   defer client.close()

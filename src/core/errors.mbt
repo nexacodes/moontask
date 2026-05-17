@@ -1,4 +1,5 @@
 ///|
+/// Domain errors raised by queue operations and runtime invariants.
 pub(all) suberror QueueError {
   DuplicateTask(String)
   DuplicateJob(String)

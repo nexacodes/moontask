@@ -1,10 +1,12 @@
 ///|
+/// Bidirectional payload codec used to serialize task input into backend bytes.
 pub(all) struct Codec[A] {
   encode : (A) -> Bytes raise
   decode : (Bytes) -> A raise
 }
 
 ///|
+/// Registered task handle used by producers to enqueue typed payloads.
 pub(all) struct Task[A] {
   id : Int
   name : String
@@ -13,6 +15,7 @@ pub(all) struct Task[A] {
 }
 
 ///|
+/// Execution context passed to task handlers and fallbacks.
 pub(all) struct TaskContext {
   queue_name : String
   job_id : JobId
@@ -25,6 +28,7 @@ pub(all) struct TaskContext {
 } derive(Eq, ToJson, Debug)
 
 ///|
+/// Policy controlling how a failed task attempt is retried.
 pub(all) enum RetryPolicy {
   NoRetry
   Fixed(max_attempts~ : Int, delay_ms~ : Int)
@@ -37,6 +41,7 @@ pub(all) enum RetryPolicy {
 } derive(Eq, ToJson, Debug)
 
 ///|
+/// Options used when registering a typed task handler in a registry.
 pub(all) struct TaskOptions[A] {
   name : String
   codec : Codec[A]
@@ -46,6 +51,7 @@ pub(all) struct TaskOptions[A] {
 }
 
 ///|
+/// Per-enqueue overrides applied on top of a task's registration defaults.
 pub(all) struct EnqueueOptions {
   delay_ms : Int
   dedupe_key : String?
@@ -55,6 +61,7 @@ pub(all) struct EnqueueOptions {
 } derive(Eq, ToJson, Debug)
 
 ///|
+/// Current lifecycle state of a job persisted in a backend.
 pub(all) enum JobStatus {
   Pending
   Scheduled
@@ -67,6 +74,7 @@ pub(all) enum JobStatus {
 } derive(Eq, ToJson, Debug)
 
 ///|
+/// Persisted job record stored by a backend implementation.
 pub(all) struct JobRecord {
   job_id : JobId
   queue_name : String
@@ -90,6 +98,7 @@ pub(all) struct JobRecord {
 } derive(Eq, ToJson, Debug)
 
 ///|
+/// Reservation issued by a backend to a consumer for exclusive processing.
 pub(all) struct Lease {
   lease_id : String
   queue_name : String
@@ -100,6 +109,7 @@ pub(all) struct Lease {
 } derive(Eq, ToJson, Debug)
 
 ///|
+/// Aggregated queue counters returned by backend and admin APIs.
 pub(all) struct StatsSnapshot {
   pending : Int
   scheduled : Int

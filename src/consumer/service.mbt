@@ -1,4 +1,5 @@
 ///|
+/// Lifecycle state of a resident consumer service.
 pub(all) enum ConsumerLifecycle {
   Idle
   Starting
@@ -8,6 +9,7 @@ pub(all) enum ConsumerLifecycle {
 } derive(Eq, ToJson, Debug)
 
 ///|
+/// Static configuration for reserving and processing jobs from one queue.
 pub(all) struct ConsumerOptions {
   queue_name : String
   consumer_id : String
@@ -21,12 +23,14 @@ pub(all) struct ConsumerOptions {
 } derive(Eq, ToJson, Debug)
 
 ///|
+/// Runtime dependencies used by `ConsumerService`.
 pub(all) struct ConsumerRuntimeOptions {
   hooks : Array[&@core.Hook]
   clock : @core.RuntimeClock
 }
 
 ///|
+/// Lightweight runtime snapshot for observability and admin APIs.
 pub(all) struct ConsumerSnapshot {
   queue_name : String
   consumer_id : String
@@ -38,6 +42,7 @@ pub(all) struct ConsumerSnapshot {
 } derive(Eq, ToJson, Debug)
 
 ///|
+/// Detailed inspection snapshot including in-flight lease state.
 pub(all) struct ConsumerInspection {
   snapshot : ConsumerSnapshot
   accepting_work : Bool
@@ -48,6 +53,7 @@ pub(all) struct ConsumerInspection {
 } derive(Eq, ToJson, Debug)
 
 ///|
+/// Runtime counters accumulated while a consumer is running.
 pub(all) struct ConsumerRuntimeMetrics {
   reserve_calls : Int
   reserved_jobs : Int
@@ -66,6 +72,7 @@ pub(all) struct ConsumerRuntimeMetrics {
 } derive(Eq, ToJson, Debug)
 
 ///|
+/// Resident queue consumer that reserves leases and dispatches task handlers.
 pub struct ConsumerService[B] {
   backend : B
   registry : @registry.Registry
@@ -102,6 +109,7 @@ pub struct ConsumerService[B] {
 }
 
 ///|
+/// Returns conservative defaults suitable for a single-worker consumer.
 pub fn default_consumer_options(
   queue_name : String,
   consumer_id : String,
@@ -120,11 +128,13 @@ pub fn default_consumer_options(
 }
 
 ///|
+/// Returns consumer runtime defaults backed by the system clock and no hooks.
 pub fn default_consumer_runtime_options() -> ConsumerRuntimeOptions {
   { hooks: [], clock: @core.system_runtime_clock() }
 }
 
 ///|
+/// Creates a consumer with default runtime dependencies.
 pub fn[B] ConsumerService::new(
   backend : B,
   registry : @registry.Registry,
@@ -139,6 +149,7 @@ pub fn[B] ConsumerService::new(
 }
 
 ///|
+/// Creates a consumer with explicit runtime dependencies.
 pub fn[B] ConsumerService::new_with_runtime(
   backend : B,
   registry : @registry.Registry,
@@ -182,16 +193,19 @@ pub fn[B] ConsumerService::new_with_runtime(
 }
 
 ///|
+/// Returns the queue name this consumer reads from.
 pub fn[B] ConsumerService::queue_name(self : ConsumerService[B]) -> String {
   self.options.queue_name
 }
 
 ///|
+/// Returns the stable identifier used when reserving leases.
 pub fn[B] ConsumerService::consumer_id(self : ConsumerService[B]) -> String {
   self.options.consumer_id
 }
 
 ///|
+/// Returns the task registry used to decode and dispatch jobs.
 pub fn[B] ConsumerService::registry(
   self : ConsumerService[B],
 ) -> @registry.Registry {
@@ -199,6 +213,7 @@ pub fn[B] ConsumerService::registry(
 }
 
 ///|
+/// Returns the current lifecycle state of the resident runtime.
 pub fn[B] ConsumerService::lifecycle(
   self : ConsumerService[B],
 ) -> ConsumerLifecycle {
@@ -206,6 +221,7 @@ pub fn[B] ConsumerService::lifecycle(
 }
 
 ///|
+/// Returns a lightweight snapshot of the current runtime state.
 pub fn[B] ConsumerService::snapshot(
   self : ConsumerService[B],
 ) -> ConsumerSnapshot {
@@ -221,6 +237,7 @@ pub fn[B] ConsumerService::snapshot(
 }
 
 ///|
+/// Returns when graceful shutdown was requested, if any.
 pub fn[B] ConsumerService::stop_requested_at_ms(
   self : ConsumerService[B],
 ) -> Int64? {
@@ -228,6 +245,7 @@ pub fn[B] ConsumerService::stop_requested_at_ms(
 }
 
 ///|
+/// Returns the forced-stop deadline computed from `stop(timeout_ms)`.
 pub fn[B] ConsumerService::stop_deadline_ms(
   self : ConsumerService[B],
 ) -> Int64? {
@@ -235,6 +253,7 @@ pub fn[B] ConsumerService::stop_deadline_ms(
 }
 
 ///|
+/// Returns a detailed inspection snapshot including in-flight leases.
 pub fn[B] ConsumerService::inspect(
   self : ConsumerService[B],
 ) -> ConsumerInspection {
@@ -249,6 +268,7 @@ pub fn[B] ConsumerService::inspect(
 }
 
 ///|
+/// Returns cumulative runtime counters for the current or last run.
 pub fn[B] ConsumerService::runtime_metrics(
   self : ConsumerService[B],
 ) -> ConsumerRuntimeMetrics {
@@ -271,6 +291,7 @@ pub fn[B] ConsumerService::runtime_metrics(
 }
 
 ///|
+/// Starts the resident consumer loop and runs until stopped or cancelled.
 pub async fn[B : @backend.QueueBackend] ConsumerService::start(
   self : ConsumerService[B],
 ) -> Unit {
@@ -332,6 +353,7 @@ pub async fn[B : @backend.QueueBackend] ConsumerService::start(
 }
 
 ///|
+/// Requests a graceful stop and forces shutdown after `timeout_ms` if needed.
 pub fn[B] ConsumerService::stop(
   self : ConsumerService[B],
   timeout_ms : Int,

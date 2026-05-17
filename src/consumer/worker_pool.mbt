@@ -1,4 +1,5 @@
 ///|
+/// Returns how many additional jobs may be reserved without exceeding concurrency.
 pub fn[B] ConsumerService::available_worker_slots(
   self : ConsumerService[B],
 ) -> Int {

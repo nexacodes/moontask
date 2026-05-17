@@ -8,6 +8,7 @@ struct TaskSpec {
 }
 
 ///|
+/// Mutable registry that maps task names to typed handlers and retry policies.
 pub struct Registry {
   mut next_task_id : Int
   task_names : Array[String]
@@ -15,26 +16,33 @@ pub struct Registry {
 }
 
 ///|
+/// Creates an empty task registry.
 pub fn new_registry() -> Registry {
   { next_task_id: 1, task_names: [], specs: {} }
 }
 
 ///|
+/// Returns whether a task name has already been registered.
 pub fn Registry::contains(self : Registry, task_name : String) -> Bool {
   self.specs.contains(task_name)
 }
 
 ///|
+/// Returns the number of registered tasks.
 pub fn Registry::task_count(self : Registry) -> Int {
   self.specs.length()
 }
 
 ///|
+/// Returns registered task names in registration order.
 pub fn Registry::task_names(self : Registry) -> Array[String] {
   self.task_names.copy()
 }
 
 ///|
+/// Registers a typed task handler and returns the task handle for producers.
+///
+/// Raises `QueueError::DuplicateTask` when the task name is already present.
 pub fn[A] register_task(
   registry : Registry,
   options : @core.TaskOptions[A],
@@ -81,6 +89,7 @@ fn find_task_spec(registry : Registry, task_name : String) -> TaskSpec raise {
 }
 
 ///|
+/// Computes the effective attempt limit for an enqueue operation.
 pub fn[A] max_attempts_for_task(
   task : @core.Task[A],
   override_value : Int?,
@@ -92,6 +101,7 @@ pub fn[A] max_attempts_for_task(
 }
 
 ///|
+/// Decodes the stored payload and runs the registered handler for `job.task_name`.
 pub async fn run_registered_job(
   registry : Registry,
   context : @core.TaskContext,
@@ -102,6 +112,7 @@ pub async fn run_registered_job(
 }
 
 ///|
+/// Runs the registered fallback for a job when one exists.
 pub async fn run_registered_fallback(
   registry : Registry,
   context : @core.TaskContext,
@@ -116,6 +127,7 @@ pub async fn run_registered_fallback(
 }
 
 ///|
+/// Loads the retry policy currently associated with a task name.
 pub fn registry_retry_policy(
   registry : Registry,
   task_name : String,

@@ -1,4 +1,5 @@
 ///|
+/// Raw RESP value returned by the lightweight Redis client.
 pub(all) enum RedisValue {
   SimpleString(String)
   Error(String)
@@ -8,21 +9,27 @@ pub(all) enum RedisValue {
 } derive(Debug, Eq)
 
 ///|
+/// Convenience alias for Redis commands returning a required string.
 pub type RedisString = Result[String, String]
 
 ///|
+/// Convenience alias for Redis commands returning an optional bulk string.
 pub type RedisBulkString = Result[String?, String]
 
 ///|
+/// Convenience alias for Redis commands returning an integer.
 pub type RedisInt = Result[Int, String]
 
 ///|
+/// Convenience alias for Redis commands returning an array of strings.
 pub type RedisArray = Result[Array[String], String]
 
 ///|
+/// Convenience alias for Redis commands returning a string-to-string hash.
 pub type RedisHash = Result[Map[String, String], String]
 
 ///|
+/// Minimal Redis client used by the Redis backend and demos.
 pub struct RedisClient {
   conn : @socket.Tcp
   pool : RedisClientPool?
@@ -31,6 +38,7 @@ pub struct RedisClient {
 }
 
 ///|
+/// Simple connection pool for reusing Redis TCP connections.
 pub(all) struct RedisClientPool {
   host : String
   port : Int
@@ -155,11 +163,13 @@ async fn RedisClient::read_value(self : RedisClient) -> RedisValue {
 }
 
 ///|
+/// Opens a standalone Redis connection.
 pub async fn connect(host : String, port : Int) -> RedisClient {
   new_standalone_client(connect_transport(host, port))
 }
 
 ///|
+/// Creates a Redis connection pool with at most `max_size` live connections.
 pub fn new_pool(
   host : String,
   port : Int,
@@ -182,6 +192,7 @@ fn RedisClientPool::forget_connection(self : RedisClientPool) -> Unit {
 }
 
 ///|
+/// Acquires a client from the pool, opening a new connection when necessary.
 pub async fn RedisClientPool::acquire(self : RedisClientPool) -> RedisClient {
   match self.idle_connections.try_get() {
     Some(conn) => return new_pooled_client(self, conn)
@@ -221,6 +232,7 @@ fn RedisClient::mark_broken(self : RedisClient) -> Unit {
 }
 
 ///|
+/// Returns the client to its pool or closes the standalone connection.
 pub fn RedisClient::close(self : RedisClient) -> Unit {
   guard !self.returned else { return }
   self.returned = true
@@ -237,6 +249,7 @@ pub fn RedisClient::close(self : RedisClient) -> Unit {
 }
 
 ///|
+/// Sends a raw Redis command and returns the decoded RESP value.
 pub async fn RedisClient::send(
   self : RedisClient,
   args : Array[String],
@@ -253,6 +266,7 @@ pub async fn RedisClient::send(
 }
 
 ///|
+/// Converts a RESP value into a bulk-string result.
 pub fn RedisValue::to_bulk_string(self : RedisValue) -> RedisBulkString {
   match self {
     BulkString(value) => Ok(value)
@@ -262,6 +276,7 @@ pub fn RedisValue::to_bulk_string(self : RedisValue) -> RedisBulkString {
 }
 
 ///|
+/// Converts a RESP value into a string result.
 pub fn RedisValue::to_string(self : RedisValue) -> RedisString {
   match self {
     SimpleString(value) => Ok(value)
@@ -272,6 +287,7 @@ pub fn RedisValue::to_string(self : RedisValue) -> RedisString {
 }
 
 ///|
+/// Converts a RESP value into an integer result.
 pub fn RedisValue::to_int(self : RedisValue) -> RedisInt {
   match self {
     Integer(value) => Ok(value)
@@ -291,6 +307,7 @@ fn flatten_array_string(value : RedisValue) -> RedisString {
 }
 
 ///|
+/// Converts a RESP array into an array of strings.
 pub fn RedisValue::to_array(self : RedisValue) -> RedisArray {
   match self {
     Array(values) => {
@@ -309,6 +326,7 @@ pub fn RedisValue::to_array(self : RedisValue) -> RedisArray {
 }
 
 ///|
+/// Converts a flat RESP array into alternating key/value hash entries.
 pub fn RedisValue::to_hash(self : RedisValue) -> RedisHash {
   let arr = match self.to_array() {
     Ok(arr) => arr
@@ -327,11 +345,13 @@ pub fn RedisValue::to_hash(self : RedisValue) -> RedisHash {
 }
 
 ///|
+/// Sends `PING`.
 pub async fn RedisClient::ping(self : RedisClient) -> RedisString {
   self.send(["PING"]).to_string()
 }
 
 ///|
+/// Sends `SET key value`.
 pub async fn RedisClient::set(
   self : RedisClient,
   key : String,
@@ -341,6 +361,7 @@ pub async fn RedisClient::set(
 }
 
 ///|
+/// Sends `KEYS pattern`.
 pub async fn RedisClient::keys(
   self : RedisClient,
   pattern : String,
@@ -349,11 +370,13 @@ pub async fn RedisClient::keys(
 }
 
 ///|
+/// Sends `INCR key`.
 pub async fn RedisClient::incr(self : RedisClient, key : String) -> RedisInt {
   self.send(["INCR", key]).to_int()
 }
 
 ///|
+/// Sends `SMEMBERS key`.
 pub async fn RedisClient::smembers(
   self : RedisClient,
   key : String,
@@ -362,6 +385,7 @@ pub async fn RedisClient::smembers(
 }
 
 ///|
+/// Sends `SADD key members...`.
 pub async fn RedisClient::sadd(
   self : RedisClient,
   key : String,
@@ -371,6 +395,7 @@ pub async fn RedisClient::sadd(
 }
 
 ///|
+/// Sends `HGETALL key`.
 pub async fn RedisClient::hgetall(
   self : RedisClient,
   key : String,

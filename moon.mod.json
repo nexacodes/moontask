@@ -1,22 +1,20 @@
 {
   "name": "nexacodes/moontask",
-  "version": "0.1.0",
+  "version": "0.1.1",
   "deps": {
     "moonbitlang/async": "0.17.0"
   },
   "readme": "README.mbt.md",
-  "repository": "https://github.com/chu2508/moontask",
+  "repository": "https://github.com/nexacodes/moontask",
   "license": "Apache-2.0",
-  "keywords": [],
-  "description": "",
+  "keywords": ["moonbit", "task-queue", "async", "redis", "job-queue"],
+  "description": "A MoonBit task queue library with producer, consumer, admin APIs, and memory/redis backends.",
   "source": "src",
   "preferred-target": "native",
   "exclude": [
-      "AGENTS.md",
-      "docs",
-      "examples",
-      "**/*_test.mbt",
-      "**/*_wbtest.mbt",
-      ".DS_Store"
-    ]
+    "AGENTS.md",
+    "docs",
+    "examples",
+    ".DS_Store"
+  ]
 }

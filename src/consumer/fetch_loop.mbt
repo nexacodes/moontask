@@ -1,4 +1,5 @@
 ///|
+/// Reserves one batch of visible jobs, capped by available worker slots.
 pub async fn[B : @backend.QueueBackend] ConsumerService::reserve_once(
   self : ConsumerService[B],
 ) -> Array[@core.Lease] {
@@ -23,6 +24,7 @@ pub async fn[B : @backend.QueueBackend] ConsumerService::reserve_once(
 }
 
 ///|
+/// Sleeps until the next poll interval or until the runtime is explicitly woken.
 pub async fn[B] ConsumerService::sleep_until_next_poll(
   self : ConsumerService[B],
 ) -> Unit {

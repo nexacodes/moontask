@@ -1,4 +1,5 @@
 ///|
+/// Extends a live lease in the backend and updates local runtime tracking.
 pub async fn[B : @backend.QueueBackend] ConsumerService::extend_lease(
   self : ConsumerService[B],
   lease : @core.Lease,
@@ -10,6 +11,7 @@ pub async fn[B : @backend.QueueBackend] ConsumerService::extend_lease(
 }
 
 ///|
+/// Reclaims expired leases in the backend and returns the count reaped.
 pub async fn[B : @backend.QueueBackend] ConsumerService::reap_expired_leases(
   self : ConsumerService[B],
 ) -> Int {
@@ -17,6 +19,7 @@ pub async fn[B : @backend.QueueBackend] ConsumerService::reap_expired_leases(
 }
 
 ///|
+/// Marks a reserved lease as running and records its execution deadline.
 pub async fn[B : @backend.QueueBackend] ConsumerService::mark_running_lease(
   self : ConsumerService[B],
   lease : @core.Lease,
@@ -56,6 +59,7 @@ fn[B] should_run_reaper(consumer : ConsumerService[B], now_ms : Int64) -> Bool {
 }
 
 ///|
+/// Runs one heartbeat cycle that renews all tracked in-flight leases.
 pub async fn[B : @backend.QueueBackend] ConsumerService::run_heartbeat_cycle(
   self : ConsumerService[B],
 ) -> Unit {
@@ -72,6 +76,7 @@ pub async fn[B : @backend.QueueBackend] ConsumerService::run_heartbeat_cycle(
 }
 
 ///|
+/// Runs one reaper cycle that returns expired leases back to the queue.
 pub async fn[B : @backend.QueueBackend] ConsumerService::run_reaper_cycle(
   self : ConsumerService[B],
 ) -> Unit {

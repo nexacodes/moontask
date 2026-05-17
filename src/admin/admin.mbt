@@ -1,17 +1,18 @@
 ///|
-
-///|
+/// Runtime dependencies used by `AdminClient`.
 pub(all) struct AdminRuntimeOptions {
   clock : @core.RuntimeClock
 }
 
 ///|
+/// Queue-level snapshot returned by admin inspection APIs.
 pub(all) struct QueueAdminSnapshot {
   queue_name : String
   stats : @core.StatsSnapshot
 } derive(Eq, ToJson, Debug)
 
 ///|
+/// Combined view of queue counters and in-process consumer metrics.
 pub(all) struct ConsumerMetricsSnapshot {
   queue_name : String
   consumer_id : String
@@ -46,22 +47,26 @@ pub(all) struct ConsumerMetricsSnapshot {
 } derive(Eq, ToJson, Debug)
 
 ///|
+/// Administrative facade over a backend and optional live consumer instance.
 pub struct AdminClient[B] {
   backend : B
   clock : @core.RuntimeClock
 }
 
 ///|
+/// Returns admin runtime defaults backed by the system clock.
 pub fn default_admin_runtime_options() -> AdminRuntimeOptions {
   { clock: @core.system_runtime_clock() }
 }
 
 ///|
+/// Creates an admin client with default runtime dependencies.
 pub fn[B] AdminClient::new(backend : B) -> AdminClient[B] {
   AdminClient::new_with_runtime(backend, default_admin_runtime_options())
 }
 
 ///|
+/// Creates an admin client with explicit runtime dependencies.
 pub fn[B] AdminClient::new_with_runtime(
   backend : B,
   runtime_options : AdminRuntimeOptions,
@@ -70,6 +75,7 @@ pub fn[B] AdminClient::new_with_runtime(
 }
 
 ///|
+/// Pauses a queue so new reservations stop until resumed.
 pub async fn[B : @backend.QueueBackend] AdminClient::pause_queue(
   self : AdminClient[B],
   queue_name : String,
@@ -79,6 +85,7 @@ pub async fn[B : @backend.QueueBackend] AdminClient::pause_queue(
 }
 
 ///|
+/// Resumes reservations for a previously paused queue.
 pub async fn[B : @backend.QueueBackend] AdminClient::resume_queue(
   self : AdminClient[B],
   queue_name : String,
@@ -87,6 +94,7 @@ pub async fn[B : @backend.QueueBackend] AdminClient::resume_queue(
 }
 
 ///|
+/// Returns aggregate statistics for a queue.
 pub async fn[B : @backend.QueueBackend] AdminClient::queue_snapshot(
   self : AdminClient[B],
   queue_name : String,
@@ -95,6 +103,7 @@ pub async fn[B : @backend.QueueBackend] AdminClient::queue_snapshot(
 }
 
 ///|
+/// Lists jobs in a queue with optional status filtering and cursor pagination.
 pub async fn[B : @backend.QueueBackend] AdminClient::list_jobs(
   self : AdminClient[B],
   queue_name : String,
@@ -106,6 +115,7 @@ pub async fn[B : @backend.QueueBackend] AdminClient::list_jobs(
 }
 
 ///|
+/// Returns a single persisted job by id when it exists.
 pub async fn[B : @backend.QueueBackend] AdminClient::get_job(
   self : AdminClient[B],
   job_id : String,
@@ -114,6 +124,7 @@ pub async fn[B : @backend.QueueBackend] AdminClient::get_job(
 }
 
 ///|
+/// Moves a dead job back to a runnable state.
 pub async fn[B : @backend.QueueBackend] AdminClient::retry_dead_job(
   self : AdminClient[B],
   job_id : String,
@@ -122,6 +133,7 @@ pub async fn[B : @backend.QueueBackend] AdminClient::retry_dead_job(
 }
 
 ///|
+/// Cancels a single job and returns whether the state changed.
 pub async fn[B : @backend.QueueBackend] AdminClient::cancel_job(
   self : AdminClient[B],
   job_id : String,
@@ -130,6 +142,7 @@ pub async fn[B : @backend.QueueBackend] AdminClient::cancel_job(
 }
 
 ///|
+/// Cancels all non-terminal jobs in a queue and returns the count affected.
 pub async fn[B : @backend.QueueBackend] AdminClient::drain_queue(
   self : AdminClient[B],
   queue_name : String,
@@ -138,6 +151,7 @@ pub async fn[B : @backend.QueueBackend] AdminClient::drain_queue(
 }
 
 ///|
+/// Returns backend health information.
 pub async fn[B : @backend.QueueBackend] AdminClient::health(
   self : AdminClient[B],
 ) -> @core.BackendHealth {
@@ -145,6 +159,7 @@ pub async fn[B : @backend.QueueBackend] AdminClient::health(
 }
 
 ///|
+/// Returns an in-memory inspection snapshot for a live consumer instance.
 pub fn[B] AdminClient::inspect_consumer(
   self : AdminClient[B],
   consumer : @consumer.ConsumerService[B],
@@ -154,6 +169,7 @@ pub fn[B] AdminClient::inspect_consumer(
 }
 
 ///|
+/// Combines backend queue stats with runtime counters from a live consumer.
 pub async fn[B : @backend.QueueBackend] AdminClient::metrics(
   self : AdminClient[B],
   consumer : @consumer.ConsumerService[B],
