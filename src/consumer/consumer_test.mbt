@@ -385,6 +385,15 @@ async test "consumer retries a failed job and eventually succeeds" {
   })
 
   @test.assert_eq(attempts, [1, 2])
+  let metrics = consumer.runtime_metrics()
+  @test.assert_eq(metrics.processed_attempts, 2)
+  @test.assert_eq(metrics.succeeded_attempts, 1)
+  @test.assert_eq(metrics.failed_retry_attempts, 1)
+  @test.assert_eq(metrics.failed_dead_attempts, 0)
+  @test.assert_eq(metrics.ack_calls, 1)
+  @test.assert_eq(metrics.nack_retry_calls, 1)
+  @test.assert_eq(metrics.nack_dead_calls, 0)
+  @test.assert_eq(consumer.inspect().pending_ack_count, 0)
 }
 
 ///|
@@ -501,6 +510,15 @@ async test "consumer marks no-retry failures dead and ignores fallback errors" {
   })
 
   @test.assert_eq(fallback_job_ids, ["dead-job-1"])
+  let metrics = consumer.runtime_metrics()
+  @test.assert_eq(metrics.processed_attempts, 1)
+  @test.assert_eq(metrics.succeeded_attempts, 0)
+  @test.assert_eq(metrics.failed_retry_attempts, 0)
+  @test.assert_eq(metrics.failed_dead_attempts, 1)
+  @test.assert_eq(metrics.ack_calls, 0)
+  @test.assert_eq(metrics.nack_retry_calls, 0)
+  @test.assert_eq(metrics.nack_dead_calls, 1)
+  @test.assert_eq(consumer.inspect().pending_ack_count, 0)
 }
 
 ///|
@@ -669,4 +687,8 @@ async test "consumer start loop runs heartbeat and reaper cycles for in-flight w
   })
 
   @test.assert_eq(attempts, [1])
+  let metrics = consumer.runtime_metrics()
+  assert_true(metrics.lease_extensions > 0)
+  @test.assert_eq(metrics.expired_leases_reaped, 0)
+  @test.assert_eq(metrics.succeeded_attempts, 1)
 }

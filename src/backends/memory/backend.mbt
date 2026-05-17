@@ -177,6 +177,62 @@ fn collect_reservable_jobs(
 }
 
 ///|
+fn collect_jobs_page(
+  backend : MemBackend,
+  queue_name : String,
+  status : @core.JobStatus?,
+  limit : Int,
+  cursor : String?,
+) -> @core.JobPage {
+  let jobs : Array[@core.JobRecord] = []
+  for job in backend.jobs.values() {
+    let matches_status = match status {
+      Some(status) => job.status == status
+      None => true
+    }
+    let after_cursor = match cursor {
+      Some(cursor) => job.job_id > cursor
+      None => true
+    }
+    if job.queue_name == queue_name && matches_status && after_cursor {
+      jobs.push(job)
+    }
+  }
+  jobs.sort_by(fn(lhs, rhs) { lhs.job_id.compare(rhs.job_id) })
+  let page_size = Int::max(0, limit)
+  let page : Array[@core.JobRecord] = []
+  for i in 0..<Int::min(page_size, jobs.length()) {
+    page.push(jobs[i])
+  }
+  let next_cursor : String? = if jobs.length() > page.length() &&
+    !page.is_empty() {
+    Some(page[page.length() - 1].job_id)
+  } else {
+    None
+  }
+  { jobs: page, next_cursor }
+}
+
+///|
+fn cancel_job_record(
+  backend : MemBackend,
+  job : @core.JobRecord,
+  finished_at_ms : Int64,
+) -> Unit raise {
+  update_job(backend, job.job_id, fn(current) {
+    {
+      ..clear_job_lease(current),
+      status: @core.Cancelled,
+      finished_at_ms: Some(finished_at_ms),
+    }
+  })
+  match job.lease_id {
+    Some(lease_id) => backend.leases.remove(lease_id)
+    None => ()
+  }
+}
+
+///|
 pub impl @backend.QueueBackend for MemBackend with enqueue(self, job) raise {
   let normalized_job : @core.JobRecord = {
     ..job,
@@ -393,4 +449,98 @@ pub impl @backend.QueueBackend for MemBackend with resume_queue(
 ///|
 pub impl @backend.QueueBackend for MemBackend with stats(self, queue_name) {
   build_stats(self, queue_name)
+}
+
+///|
+pub impl @backend.QueueBackend for MemBackend with list_jobs(
+  self,
+  queue_name,
+  status,
+  limit,
+  cursor,
+) {
+  collect_jobs_page(self, queue_name, status, limit, cursor)
+}
+
+///|
+pub impl @backend.QueueBackend for MemBackend with get_job(self, job_id) {
+  self.jobs.get(job_id)
+}
+
+///|
+pub impl @backend.QueueBackend for MemBackend with retry_dead_job(
+  self,
+  job_id,
+  now_ms,
+) raise {
+  let job = match self.jobs.get(job_id) {
+    Some(job) => job
+    None => return false
+  }
+  guard job.status is @core.Dead else { return false }
+  update_job(self, job_id, fn(current) {
+    {
+      ..clear_job_lease(current),
+      status: @core.Pending,
+      visible_at_ms: now_ms,
+      finished_at_ms: None,
+      last_error: current.last_error,
+    }
+  })
+  true
+}
+
+///|
+pub impl @backend.QueueBackend for MemBackend with cancel_job(
+  self,
+  job_id,
+  finished_at_ms,
+) raise {
+  let job = match self.jobs.get(job_id) {
+    Some(job) => job
+    None => return false
+  }
+  match job.status {
+    @core.Succeeded | @core.Dead | @core.Cancelled => false
+    _ => {
+      cancel_job_record(self, job, finished_at_ms)
+      true
+    }
+  }
+}
+
+///|
+pub impl @backend.QueueBackend for MemBackend with drain_queue(
+  self,
+  queue_name,
+  finished_at_ms,
+) raise {
+  let job_ids = []
+  for job in self.jobs.values() {
+    if job.queue_name == queue_name {
+      match job.status {
+        @core.Succeeded | @core.Dead | @core.Cancelled => ()
+        _ => job_ids.push(job.job_id)
+      }
+    }
+  }
+  for job_id in job_ids {
+    let job = match self.jobs.get(job_id) {
+      Some(job) => job
+      None => continue
+    }
+    cancel_job_record(self, job, finished_at_ms)
+  }
+  job_ids.length()
+}
+
+///|
+pub impl @backend.QueueBackend for MemBackend with health(self) {
+  {
+    ok: true,
+    backend_kind: "memory",
+    detail: Some(
+      "jobs=\{self.jobs.length()} leases=\{self.leases.length()} paused=\{self.paused_queues.length()}",
+    ),
+  }
 }

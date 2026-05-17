@@ -6,6 +6,7 @@ pub fn[B : @backend.QueueBackend] ConsumerService::reserve_once(
   let available_slots = self.available_worker_slots()
   guard available_slots > 0 else { return [] }
   let batch_size = Int::min(self.options.reserve_batch_size, available_slots)
+  let started_at_ms = (self.clock.now_ms)()
   let leases = self.backend.reserve_batch(
     self.options.queue_name,
     self.options.consumer_id,
@@ -13,6 +14,10 @@ pub fn[B : @backend.QueueBackend] ConsumerService::reserve_once(
     self.options.lease_ms,
     (self.clock.now_ms)(),
   )
+  self.reserve_calls = self.reserve_calls + 1
+  self.reserved_jobs = self.reserved_jobs + leases.length()
+  self.reserve_latency_ms_total = self.reserve_latency_ms_total +
+    ((self.clock.now_ms)() - started_at_ms)
   mark_leases_reserved(self, leases)
   leases
 }

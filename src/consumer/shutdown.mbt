@@ -42,13 +42,3 @@ fn[B] ConsumerService::wake_sleeping_runtime(self : ConsumerService[B]) -> Unit 
     None => ()
   }
 }
-
-///|
-fn[B] ConsumerService::force_runtime_shutdown(
-  self : ConsumerService[B],
-) -> Unit {
-  match self.runtime_shutdown {
-    Some(shutdown) => shutdown()
-    None => ()
-  }
-}

@@ -42,8 +42,27 @@ pub(all) struct ConsumerInspection {
   snapshot : ConsumerSnapshot
   accepting_work : Bool
   inflight_leases : Array[@core.Lease]
+  pending_ack_count : Int
   stop_requested_at_ms : Int64?
   stop_deadline_ms : Int64?
+} derive(Eq, ToJson, Debug)
+
+///|
+pub(all) struct ConsumerRuntimeMetrics {
+  reserve_calls : Int
+  reserved_jobs : Int
+  reserve_latency_ms_total : Int64
+  ack_calls : Int
+  ack_latency_ms_total : Int64
+  nack_retry_calls : Int
+  nack_dead_calls : Int
+  lease_extensions : Int
+  expired_leases_reaped : Int
+  processed_attempts : Int
+  succeeded_attempts : Int
+  failed_retry_attempts : Int
+  failed_dead_attempts : Int
+  cancelled_attempts : Int
 } derive(Eq, ToJson, Debug)
 
 ///|
@@ -55,16 +74,31 @@ pub struct ConsumerService[B] {
   clock : @core.RuntimeClock
   worker_semaphore : @async.Semaphore
   inflight_leases : Map[String, @core.Lease]
+  mut result_queue : @async.Queue[AttemptResult]?
   mut lifecycle : ConsumerLifecycle
   mut inflight_count : Int
+  mut pending_ack_count : Int
   mut started_at_ms : Int64?
   mut stopped_at_ms : Int64?
   mut stop_requested_at_ms : Int64?
   mut stop_deadline_ms : Int64?
   mut last_heartbeat_at_ms : Int64?
   mut last_reaper_at_ms : Int64?
-  mut runtime_shutdown : (() -> Unit)?
   mut sleep_interrupt : (() -> Unit)?
+  mut reserve_calls : Int
+  mut reserved_jobs : Int
+  mut reserve_latency_ms_total : Int64
+  mut ack_calls : Int
+  mut ack_latency_ms_total : Int64
+  mut nack_retry_calls : Int
+  mut nack_dead_calls : Int
+  mut lease_extensions : Int
+  mut expired_leases_reaped : Int
+  mut processed_attempts : Int
+  mut succeeded_attempts : Int
+  mut failed_retry_attempts : Int
+  mut failed_dead_attempts : Int
+  mut cancelled_attempts : Int
 }
 
 ///|
@@ -119,16 +153,31 @@ pub fn[B] ConsumerService::new_with_runtime(
     clock: runtime_options.clock,
     worker_semaphore: @async.Semaphore::new(options.max_concurrency),
     inflight_leases: {},
+    result_queue: None,
     lifecycle: Idle,
     inflight_count: 0,
+    pending_ack_count: 0,
     started_at_ms: None,
     stopped_at_ms: None,
     stop_requested_at_ms: None,
     stop_deadline_ms: None,
     last_heartbeat_at_ms: None,
     last_reaper_at_ms: None,
-    runtime_shutdown: None,
     sleep_interrupt: None,
+    reserve_calls: 0,
+    reserved_jobs: 0,
+    reserve_latency_ms_total: 0L,
+    ack_calls: 0,
+    ack_latency_ms_total: 0L,
+    nack_retry_calls: 0,
+    nack_dead_calls: 0,
+    lease_extensions: 0,
+    expired_leases_reaped: 0,
+    processed_attempts: 0,
+    succeeded_attempts: 0,
+    failed_retry_attempts: 0,
+    failed_dead_attempts: 0,
+    cancelled_attempts: 0,
   }
 }
 
@@ -193,8 +242,31 @@ pub fn[B] ConsumerService::inspect(
     snapshot: self.snapshot(),
     accepting_work: self.is_accepting_work(),
     inflight_leases: inflight_leases_snapshot(self),
+    pending_ack_count: self.pending_ack_count,
     stop_requested_at_ms: self.stop_requested_at_ms,
     stop_deadline_ms: self.stop_deadline_ms,
+  }
+}
+
+///|
+pub fn[B] ConsumerService::runtime_metrics(
+  self : ConsumerService[B],
+) -> ConsumerRuntimeMetrics {
+  {
+    reserve_calls: self.reserve_calls,
+    reserved_jobs: self.reserved_jobs,
+    reserve_latency_ms_total: self.reserve_latency_ms_total,
+    ack_calls: self.ack_calls,
+    ack_latency_ms_total: self.ack_latency_ms_total,
+    nack_retry_calls: self.nack_retry_calls,
+    nack_dead_calls: self.nack_dead_calls,
+    lease_extensions: self.lease_extensions,
+    expired_leases_reaped: self.expired_leases_reaped,
+    processed_attempts: self.processed_attempts,
+    succeeded_attempts: self.succeeded_attempts,
+    failed_retry_attempts: self.failed_retry_attempts,
+    failed_dead_attempts: self.failed_dead_attempts,
+    cancelled_attempts: self.cancelled_attempts,
   }
 }
 
@@ -211,13 +283,18 @@ pub async fn[B : @backend.QueueBackend] ConsumerService::start(
       self.stop_deadline_ms = None
       self.last_heartbeat_at_ms = None
       self.last_reaper_at_ms = None
+      self.pending_ack_count = 0
+      self.reset_runtime_metrics()
+      self.result_queue = Some(@async.Queue::new(kind=Unbounded))
       self.lifecycle = Running
       @async.with_task_group(async fn(group) {
-        self.runtime_shutdown = Some(fn() {
-          ignore(try? group.return_immediately(()))
-        })
+        let ack_task = group.spawn(
+          async fn() { self.run_ack_loop() },
+          allow_failure=true,
+        )
         defer {
-          self.runtime_shutdown = None
+          self.close_result_queue()
+          self.result_queue = None
           self.sleep_interrupt = None
         }
         while self.should_continue_runtime() {
@@ -238,8 +315,11 @@ pub async fn[B : @backend.QueueBackend] ConsumerService::start(
           guard self.should_continue_runtime() else { break }
           self.sleep_until_next_poll()
         }
+        self.close_result_queue()
+        ignore(ack_task.wait())
       })
       reset_inflight_tracking(self)
+      self.pending_ack_count = 0
       self.lifecycle = Stopped
       self.stopped_at_ms = Some((self.clock.now_ms)())
     }
@@ -262,9 +342,6 @@ pub fn[B] ConsumerService::stop(
       self.stop_deadline_ms = Some(stop_deadline_from_timeout(self, timeout_ms))
       self.lifecycle = Stopping
       self.wake_sleeping_runtime()
-      if self.should_force_shutdown() {
-        self.force_runtime_shutdown()
-      }
     }
     Idle => {
       self.stop_requested_at_ms = Some((self.clock.now_ms)())

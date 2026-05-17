@@ -37,6 +37,12 @@ pub(all) enum AttemptOutcome {
   Cancelled
 } derive(Eq, ToJson, @debug.Debug)
 
+pub(all) struct BackendHealth {
+  ok : Bool
+  backend_kind : String
+  detail : String?
+} derive(Eq, ToJson, @debug.Debug)
+
 pub(all) struct Codec[A] {
   encode : (A) -> Bytes raise
   decode : (Bytes) -> A raise
@@ -48,6 +54,11 @@ pub(all) struct EnqueueOptions {
   schedule_at_ms : Int64?
   timeout_ms : Int?
   max_attempts_override : Int?
+} derive(Eq, ToJson, @debug.Debug)
+
+pub(all) struct JobPage {
+  jobs : Array[JobRecord]
+  next_cursor : String?
 } derive(Eq, ToJson, @debug.Debug)
 
 pub(all) struct JobRecord {

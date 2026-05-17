@@ -76,6 +76,80 @@ test "admin client pauses and resumes queues while exposing queue stats" {
 }
 
 ///|
+test "admin client lists jobs, loads jobs, retries dead jobs, cancels jobs, drains queues, and reports health" {
+  let backend = @memory.new_mem_backend()
+  let admin = AdminClient::new(backend)
+  ignore(
+    try! enqueue_admin_job(
+      backend,
+      build_admin_job("admin-job-3", "emails", "email.send"),
+    ),
+  )
+  ignore(
+    try! enqueue_admin_job(backend, {
+      ..build_admin_job("admin-job-4", "emails", "email.send"),
+      visible_at_ms: 50L,
+    }),
+  )
+  ignore(
+    try! enqueue_admin_job(
+      backend,
+      build_admin_job("admin-job-5", "invoices", "invoice.send"),
+    ),
+  )
+
+  let first_page = try! admin.list_jobs("emails", 1)
+  @test.assert_eq(first_page.jobs.length(), 1)
+  @test.assert_eq(first_page.jobs[0].job_id, "admin-job-3")
+  assert_true(first_page.next_cursor is Some("admin-job-3"))
+  let next_cursor = match first_page.next_cursor {
+    Some(cursor) => cursor
+    None => fail("expected next cursor")
+  }
+
+  let second_page = try! admin.list_jobs("emails", 10, cursor=next_cursor)
+  @test.assert_eq(second_page.jobs.length(), 1)
+  @test.assert_eq(second_page.jobs[0].job_id, "admin-job-4")
+
+  let loaded_job = try! admin.get_job("admin-job-4")
+  assert_true(loaded_job is Some(_))
+  @test.assert_eq(loaded_job.unwrap().queue_name, "emails")
+
+  let scheduled_only = try! admin.list_jobs(
+    "emails",
+    10,
+    status=@core.Scheduled,
+  )
+  @test.assert_eq(scheduled_only.jobs.length(), 1)
+  @test.assert_eq(scheduled_only.jobs[0].job_id, "admin-job-4")
+
+  let lease = backend.reserve_batch("emails", "consumer-a", 1, 100, 0L)[0]
+  try! backend.nack_dead(lease.lease_id, "boom", 5L)
+  @test.assert_eq(try! admin.retry_dead_job("admin-job-3"), true)
+  @test.assert_eq(
+    (try! admin.get_job("admin-job-3")).unwrap().status,
+    @core.Pending,
+  )
+
+  @test.assert_eq(try! admin.cancel_job("admin-job-4"), true)
+  @test.assert_eq(
+    (try! admin.get_job("admin-job-4")).unwrap().status,
+    @core.Cancelled,
+  )
+
+  @test.assert_eq(try! admin.drain_queue("invoices"), 1)
+  @test.assert_eq(
+    (try! admin.get_job("admin-job-5")).unwrap().status,
+    @core.Cancelled,
+  )
+
+  let health = try! admin.health()
+  @test.assert_eq(health.ok, true)
+  @test.assert_eq(health.backend_kind, "memory")
+  assert_true(health.detail is Some(_))
+}
+
+///|
 async test "admin inspect and metrics expose live consumer state" {
   let backend = @memory.new_mem_backend()
   let registry = @registry.new_registry()
@@ -125,6 +199,8 @@ async test "admin inspect and metrics expose live consumer state" {
     let running_metrics = try! admin.metrics(consumer)
     @test.assert_eq(running_metrics.running, 1)
     @test.assert_eq(running_metrics.succeeded, 0)
+    @test.assert_eq(running_metrics.reserve_calls, 1)
+    @test.assert_eq(running_metrics.processed_attempts, 0)
 
     consumer.stop(1000)
     let stopping_inspection = admin.inspect_consumer(consumer)
@@ -139,4 +215,7 @@ async test "admin inspect and metrics expose live consumer state" {
   let final_metrics = try! admin.metrics(consumer)
   @test.assert_eq(final_metrics.lifecycle, @consumer.Stopped)
   @test.assert_eq(final_metrics.succeeded, 1)
+  @test.assert_eq(final_metrics.processed_attempts, 1)
+  @test.assert_eq(final_metrics.succeeded_attempts, 1)
+  @test.assert_eq(final_metrics.ack_calls, 1)
 }

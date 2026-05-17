@@ -5,6 +5,7 @@ pub fn[B : @backend.QueueBackend] ConsumerService::extend_lease(
   new_deadline_ms : Int64,
 ) -> Unit raise {
   self.backend.extend_lease(lease.lease_id, new_deadline_ms)
+  self.lease_extensions = self.lease_extensions + 1
   mark_lease_extended(self, lease.lease_id, new_deadline_ms)
 }
 
@@ -76,6 +77,7 @@ pub fn[B : @backend.QueueBackend] ConsumerService::run_reaper_cycle(
 ) -> Unit raise {
   let now_ms = (self.clock.now_ms)()
   guard should_run_reaper(self, now_ms) else { return }
-  ignore(self.backend.reap_expired_leases(now_ms))
+  self.expired_leases_reaped = self.expired_leases_reaped +
+    self.backend.reap_expired_leases(now_ms)
   self.last_reaper_at_ms = Some(now_ms)
 }

@@ -26,5 +26,11 @@ pub(open) trait QueueBackend {
   pause(Self, String, String) -> Unit raise
   resume_queue(Self, String) -> Unit raise
   stats(Self, String) -> @core.StatsSnapshot raise
+  list_jobs(Self, String, @core.JobStatus?, Int, String?) -> @core.JobPage raise
+  get_job(Self, String) -> @core.JobRecord? raise
+  retry_dead_job(Self, String, Int64) -> Bool raise
+  cancel_job(Self, String, Int64) -> Bool raise
+  drain_queue(Self, String, Int64) -> Int raise
+  health(Self) -> @core.BackendHealth raise
 }
 

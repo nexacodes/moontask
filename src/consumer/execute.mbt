@@ -47,68 +47,6 @@ fn is_attempt_timed_out(finished_at_ms : Int64, deadline_ms : Int64?) -> Bool {
 }
 
 ///|
-async fn[B : @backend.QueueBackend] handle_attempt_failure(
-  consumer : ConsumerService[B],
-  lease : @core.Lease,
-  context : @core.TaskContext,
-  event : @core.ProcessEvent,
-  err : Error,
-) -> Unit {
-  let retry_policy_result : Result[@core.RetryPolicy, Error] = try? @registry.registry_retry_policy(
-    consumer.registry,
-    lease.job.task_name,
-  )
-  let policy = match retry_policy_result {
-    Ok(policy) => policy
-    Err(_) => @core.NoRetry
-  }
-  match next_retry_visible_at_ms(consumer.clock, lease, policy) {
-    Some(next_visible_at_ms) if lease.job.attempt < lease.job.max_attempts => {
-      ignore(
-        try? consumer.nack_retry_lease(
-          lease,
-          err.to_string(),
-          next_visible_at_ms,
-        ),
-      )
-      run_after_hooks(
-        consumer,
-        event,
-        build_process_result(
-          @core.FailedWillRetry,
-          Some(err.to_string()),
-          event,
-          (consumer.clock.now_ms)(),
-          Some(next_visible_at_ms),
-        ),
-      )
-    }
-    _ => {
-      ignore(try? consumer.nack_dead_lease(lease, err.to_string()))
-      ignore(
-        try? @registry.run_registered_fallback(
-          consumer.registry,
-          context,
-          lease.job,
-          err,
-        ),
-      )
-      run_after_hooks(
-        consumer,
-        event,
-        build_process_result(
-          @core.FailedDead,
-          Some(err.to_string()),
-          event,
-          (consumer.clock.now_ms)(),
-          None,
-        ),
-      )
-    }
-  }
-}
-
-///|
 async fn[B : @backend.QueueBackend] process_lease(
   consumer : ConsumerService[B],
   lease : @core.Lease,
@@ -125,34 +63,38 @@ async fn[B : @backend.QueueBackend] process_lease(
   let context = build_task_context(running_lease)
   let event = build_process_event(running_lease)
   run_before_hooks(consumer, event)
-  let failure = try {
+  let attempt_failure = try {
     @registry.run_registered_job(consumer.registry, context, running_lease.job)
     None
   } catch {
     err if @async.is_cancellation_error(err) => {
-      // Forced shutdown should leave the lease recoverable instead of
-      // translating cooperative task cancellation into a terminal failure.
       mark_lease_finished(consumer, lease.lease_id)
+      consumer.cancelled_attempts = consumer.cancelled_attempts + 1
       return
     }
     err => Some(err)
   }
   let finished_at_ms = (consumer.clock.now_ms)()
-  let failure = match failure {
+  let attempt_failure = match attempt_failure {
     Some(err) => Some(err)
     None if is_attempt_timed_out(finished_at_ms, deadline_ms) =>
       Some(@core.QueueError::BackendFailure("task exceeded timeout"))
     None => None
   }
-  match failure {
-    None => {
-      ignore(try? consumer.ack_lease(lease))
-      run_after_hooks(
-        consumer,
-        event,
-        build_process_result(@core.Succeeded, None, event, finished_at_ms, None),
+  let result = match attempt_failure {
+    None => Some(Succeeded(lease=running_lease, event~, finished_at_ms~))
+    Some(err) =>
+      Some(Failed(lease=running_lease, context~, event~, finished_at_ms~, err~))
+  }
+  match result {
+    None => ()
+    Some(result) => {
+      let submission_result : Result[Unit, Error] = try? consumer.submit_attempt_result(
+        result,
       )
+      if submission_result is Err(_) {
+        mark_lease_finished(consumer, lease.lease_id)
+      }
     }
-    Some(err) => handle_attempt_failure(consumer, lease, context, event, err)
   }
 }
