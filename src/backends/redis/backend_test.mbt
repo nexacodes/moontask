@@ -13,6 +13,15 @@ async fn new_clean_backend(prefix : String) -> RedisBackend {
 }
 
 ///|
+async fn new_clean_backend_with_pool(
+  prefix : String,
+  pool_size : Int,
+) -> RedisBackend {
+  let backend = try! new_clean_backend(prefix)
+  new_redis_backend("127.0.0.1", 6379, prefix=backend.prefix, pool_size~)
+}
+
+///|
 async test "redis backend reserves and acknowledges jobs" {
   try! @testing.assert_backend_contract_reserve_and_ack(
     try! new_clean_backend("moontask:test:redis:ack"),
@@ -74,4 +83,45 @@ async test "redis backend health reports redis connectivity" {
   let health = try! backend.health()
   @test.assert_eq(health.ok, true)
   @test.assert_eq(health.backend_kind, "redis")
+}
+
+///|
+async test "redis backend reuses pooled connections across sequential calls" {
+  let backend = try! new_clean_backend_with_pool(
+    "moontask:test:redis:pool-reuse", 1,
+  )
+  ignore(try! backend.health())
+  @test.assert_eq(backend.pool.open_count, 1)
+  ignore(try! backend.health())
+  @test.assert_eq(backend.pool.open_count, 1)
+}
+
+///|
+async test "redis backend pool blocks at configured maximum size" {
+  let backend = try! new_clean_backend_with_pool(
+    "moontask:test:redis:pool-bound", 2,
+  )
+  let client1 = backend.pool.acquire()
+  let client2 = backend.pool.acquire()
+  @test.assert_eq(backend.pool.open_count, 2)
+  let events : Array[String] = []
+  @async.with_task_group(async fn(group) {
+    let waiting_client = group.spawn(
+      async fn() {
+        let client3 = backend.pool.acquire()
+        defer client3.close()
+        events.push("acquired")
+        @test.assert_eq(client3.ping(), Ok("PONG"))
+      },
+      no_wait=true,
+    )
+    @async.sleep(20)
+    @test.assert_eq(events.length(), 0)
+    client1.close()
+    @async.sleep(20)
+    @test.assert_eq(events, ["acquired"])
+    ignore(waiting_client.wait())
+  })
+  client2.close()
+  @test.assert_eq(backend.pool.open_count, 2)
 }

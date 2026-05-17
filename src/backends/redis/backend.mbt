@@ -13,6 +13,7 @@ pub struct RedisBackend {
   host : String
   port : Int
   prefix : String
+  pool : RedisClientPool
 }
 
 ///|
@@ -20,8 +21,9 @@ pub fn new_redis_backend(
   host : String,
   port : Int,
   prefix? : String = "moontask",
+  pool_size? : Int = 32,
 ) -> RedisBackend {
-  { host, port, prefix }
+  { host, port, prefix, pool: new_pool(host, port, max_size=pool_size) }
 }
 
 ///|
@@ -335,7 +337,7 @@ fn raise_backend_failure(op : String, err : String) -> Error {
 
 ///|
 async fn open_client(backend : RedisBackend) -> RedisClient {
-  connect(backend.host, backend.port)
+  backend.pool.acquire()
 }
 
 ///|

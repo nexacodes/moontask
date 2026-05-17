@@ -2,6 +2,8 @@
 package "nexacodes/moontask/backends/redis"
 
 import {
+  "moonbitlang/async/aqueue",
+  "moonbitlang/async/semaphore",
   "moonbitlang/async/socket",
   "moonbitlang/core/debug",
   "nexacodes/moontask/backend",
@@ -11,7 +13,9 @@ import {
 // Values
 pub async fn connect(String, Int) -> RedisClient
 
-pub fn new_redis_backend(String, Int, prefix? : String) -> RedisBackend
+pub fn new_pool(String, Int, max_size? : Int) -> RedisClientPool
+
+pub fn new_redis_backend(String, Int, prefix? : String, pool_size? : Int) -> RedisBackend
 
 // Errors
 
@@ -20,12 +24,16 @@ pub struct RedisBackend {
   host : String
   port : Int
   prefix : String
+  pool : RedisClientPool
 }
 pub async fn RedisBackend::reset_namespace(Self) -> Unit
 pub impl @backend.QueueBackend for RedisBackend
 
 pub struct RedisClient {
   conn : @socket.Tcp
+  pool : RedisClientPool?
+  mut returned : Bool
+  mut reusable : Bool
 }
 pub fn RedisClient::close(Self) -> Unit
 pub async fn RedisClient::hgetall(Self, String) -> Result[Map[String, String], String]
@@ -36,6 +44,16 @@ pub async fn RedisClient::sadd(Self, String, Array[String]) -> Result[Int, Strin
 pub async fn RedisClient::send(Self, Array[String]) -> RedisValue
 pub async fn RedisClient::set(Self, String, String) -> Result[String, String]
 pub async fn RedisClient::smembers(Self, String) -> Result[Array[String], String]
+
+pub(all) struct RedisClientPool {
+  host : String
+  port : Int
+  max_size : Int
+  idle_connections : @aqueue.Queue[@socket.Tcp]
+  create_lock : @semaphore.Semaphore
+  mut open_count : Int
+}
+pub async fn RedisClientPool::acquire(Self) -> RedisClient
 
 pub(all) enum RedisValue {
   SimpleString(String)
