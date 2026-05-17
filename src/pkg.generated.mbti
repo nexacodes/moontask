@@ -1,13 +1,144 @@
 // Generated using `moon info`, DON'T EDIT IT
 package "nexacodes/moontask"
 
+import {
+  "nexacodes/moontask/admin",
+  "nexacodes/moontask/backend",
+  "nexacodes/moontask/backends/memory",
+  "nexacodes/moontask/backends/redis",
+  "nexacodes/moontask/consumer",
+  "nexacodes/moontask/core",
+  "nexacodes/moontask/producer",
+  "nexacodes/moontask/registry",
+}
+
 // Values
+pub fn bytes_codec() -> @core.Codec[Bytes]
+
+pub async fn connect(String, Int) -> @redis.RedisClient
+
+pub fn default_admin_runtime_options() -> @admin.AdminRuntimeOptions
+
+pub fn default_consumer_options(String, String) -> @consumer.ConsumerOptions
+
+pub fn default_consumer_runtime_options() -> @consumer.ConsumerRuntimeOptions
+
+pub fn default_enqueue_options() -> @core.EnqueueOptions
+
+pub fn default_producer_runtime_options() -> @producer.ProducerRuntimeOptions
+
+pub fn empty_stats_snapshot(Bool) -> @core.StatsSnapshot
+
+pub fn[A] max_attempts_for_task(@core.Task[A], Int?) -> Int
+
+pub fn new_mem_backend() -> @memory.MemBackend
+
+pub fn new_pool(String, Int, max_size? : Int) -> @redis.RedisClientPool
+
+pub fn new_redis_backend(String, Int, prefix? : String, pool_size? : Int) -> @redis.RedisBackend
+
+pub fn new_registry() -> @registry.Registry
+
+pub fn[A] register_task(@registry.Registry, @core.TaskOptions[A]) -> @core.Task[A] raise
+
+pub fn registry_retry_policy(@registry.Registry, String) -> @core.RetryPolicy raise
+
+pub fn retry_policy_max_attempts(@core.RetryPolicy) -> Int
+
+pub fn system_runtime_clock() -> @core.RuntimeClock
 
 // Errors
 
 // Types and methods
 
 // Type aliases
+pub using @admin {type AdminClient}
+
+pub using @admin {type AdminRuntimeOptions}
+
+pub using @core {type AttemptOutcome}
+
+pub using @core {type BackendHealth}
+
+pub using @core {type Codec}
+
+pub using @consumer {type ConsumerInspection}
+
+pub using @consumer {type ConsumerLifecycle}
+
+pub using @admin {type ConsumerMetricsSnapshot}
+
+pub using @consumer {type ConsumerOptions}
+
+pub using @consumer {type ConsumerRuntimeMetrics}
+
+pub using @consumer {type ConsumerRuntimeOptions}
+
+pub using @consumer {type ConsumerService}
+
+pub using @consumer {type ConsumerSnapshot}
+
+pub using @core {type EnqueueOptions}
+
+pub type JobId = String
+
+pub using @core {type JobPage}
+
+pub using @core {type JobRecord}
+
+pub using @core {type JobStatus}
+
+pub using @core {type Lease}
+
+pub using @memory {type MemBackend}
+
+pub using @core {type ProcessEvent}
+
+pub using @core {type ProcessResult}
+
+pub using @producer {type Producer}
+
+pub using @producer {type ProducerRuntimeOptions}
+
+pub using @admin {type QueueAdminSnapshot}
+
+pub using @core {type QueueError}
+
+pub type RedisArray = Result[Array[String], String]
+
+pub using @redis {type RedisBackend}
+
+pub type RedisBulkString = Result[String?, String]
+
+pub using @redis {type RedisClient}
+
+pub using @redis {type RedisClientPool}
+
+pub type RedisHash = Result[Map[String, String], String]
+
+pub type RedisInt = Result[Int, String]
+
+pub type RedisString = Result[String, String]
+
+pub using @redis {type RedisValue}
+
+pub using @registry {type Registry}
+
+pub using @core {type RetryPolicy}
+
+pub using @core {type RuntimeClock}
+
+pub using @core {type StatsSnapshot}
+
+pub using @core {type Task}
+
+pub using @core {type TaskContext}
+
+pub using @core {type TaskOptions}
+
+pub using @core {trait Hook}
+
+pub using @backend {trait QueueBackend}
 
 // Traits
 

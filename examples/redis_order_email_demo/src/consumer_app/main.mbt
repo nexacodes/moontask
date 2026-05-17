@@ -61,10 +61,10 @@ async fn main {
   guard stats_interval_ms > 0 else { fail("`-stats-ms` must be positive") }
 
   let backend = @demo.new_demo_backend()
-  let registry = @registry.new_registry()
+  let registry = @moontask.new_registry()
   ignore(try! @demo.register_consumer_task(registry, consumer_id))
-  let consumer = @consumer.ConsumerService::new(backend, registry, {
-    ..@consumer.default_consumer_options(@demo.queue_name, consumer_id),
+  let consumer = @moontask.ConsumerService::new(backend, registry, {
+    ..@moontask.default_consumer_options(@demo.queue_name, consumer_id),
     max_concurrency,
     reserve_batch_size,
     lease_ms: 10_000,
@@ -73,7 +73,7 @@ async fn main {
     heartbeat_interval_ms: 200,
     reaper_interval_ms: 200,
   })
-  let admin = @admin.AdminClient::new(backend)
+  let admin = @moontask.AdminClient::new(backend)
 
   println(
     "consumer starting id=\{consumer_id} queue=\{@demo.queue_name} concurrency=\{max_concurrency} batch=\{reserve_batch_size}",

@@ -15,7 +15,7 @@ struct OrderEmailPayload {
 } derive(ToJson, FromJson, Debug)
 
 ///|
-fn order_email_codec() -> @core.Codec[OrderEmailPayload] {
+fn order_email_codec() -> @moontask.Codec[OrderEmailPayload] {
   {
     encode: fn(payload : OrderEmailPayload) {
       @utf8.encode(payload.to_json().stringify())
@@ -30,15 +30,15 @@ fn order_email_codec() -> @core.Codec[OrderEmailPayload] {
 
 ///|
 struct OrderService[B] {
-  producer : @producer.Producer[B]
-  email_task : @core.Task[OrderEmailPayload]
+  producer : @moontask.Producer[B]
+  email_task : @moontask.Task[OrderEmailPayload]
   mut next_order_sequence : Int
 }
 
 ///|
 fn[B] new_order_service(
-  producer : @producer.Producer[B],
-  email_task : @core.Task[OrderEmailPayload],
+  producer : @moontask.Producer[B],
+  email_task : @moontask.Task[OrderEmailPayload],
 ) -> OrderService[B] {
   { producer, email_task, next_order_sequence: 1 }
 }
@@ -54,7 +54,7 @@ fn build_email_payload(order : Order) -> OrderEmailPayload {
 }
 
 ///|
-pub async fn[B : @backend.QueueBackend] OrderService::create_order(
+pub async fn[B : @moontask.QueueBackend] OrderService::create_order(
   self : OrderService[B],
   user_email : String,
   items : Array[String],
@@ -86,15 +86,15 @@ pub async fn[B : @backend.QueueBackend] OrderService::create_order(
 }
 
 ///|
-async fn[B : @backend.QueueBackend] queue_stats(
+async fn[B : @moontask.QueueBackend] queue_stats(
   backend : B,
   queue_name : String,
-) -> @core.StatsSnapshot {
+) -> @moontask.StatsSnapshot {
   backend.stats(queue_name)
 }
 
 ///|
-async fn[B : @backend.QueueBackend] wait_until_succeeded(
+async fn[B : @moontask.QueueBackend] wait_until_succeeded(
   backend : B,
   queue_name : String,
   expected_count : Int,
@@ -113,13 +113,13 @@ async fn[B : @backend.QueueBackend] wait_until_succeeded(
 
 ///|
 async fn main {
-  let backend = @memory.new_mem_backend()
-  let registry = @registry.new_registry()
-  let email_task = try! @registry.register_task(registry, {
+  let backend = @moontask.new_mem_backend()
+  let registry = @moontask.new_registry()
+  let email_task = try! @moontask.register_task(registry, {
     name: "email.order_confirmation",
     codec: order_email_codec(),
     retry: @core.Fixed(max_attempts=3, delay_ms=500),
-    handler: fn(context : @core.TaskContext, payload : OrderEmailPayload) {
+    handler: fn(context : @moontask.TaskContext, payload : OrderEmailPayload) {
       println(
         "send order email job=\{context.job_id} order=\{payload.order_id} to=\{payload.user_email}",
       )
@@ -129,7 +129,7 @@ async fn main {
       println("items: \{payload.items.to_json().stringify()}")
     },
     fallback: Some(fn(
-      context : @core.TaskContext,
+      context : @moontask.TaskContext,
       payload : OrderEmailPayload,
       err : Error,
     ) {
@@ -138,10 +138,10 @@ async fn main {
       )
     }),
   })
-  let producer = @producer.Producer::new(backend, "emails")
+  let producer = @moontask.Producer::new(backend, "emails")
   let order_service = new_order_service(producer, email_task)
-  let consumer = @consumer.ConsumerService::new(backend, registry, {
-    ..@consumer.default_consumer_options("emails", "order-email-consumer"),
+  let consumer = @moontask.ConsumerService::new(backend, registry, {
+    ..@moontask.default_consumer_options("emails", "order-email-consumer"),
     max_concurrency: 2,
     reserve_batch_size: 2,
     lease_ms: 5_000,

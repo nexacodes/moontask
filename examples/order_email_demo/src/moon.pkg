@@ -2,12 +2,8 @@ import {
   "moonbitlang/async",
   "moonbitlang/core/encoding/utf8" @utf8,
   "moonbitlang/core/json" @json,
-  "nexacodes/moontask/backend" @backend,
-  "nexacodes/moontask/backends/memory" @memory,
-  "nexacodes/moontask/consumer",
-  "nexacodes/moontask/core",
-  "nexacodes/moontask/producer",
-  "nexacodes/moontask/registry",
+  "nexacodes/moontask" @moontask,
+  "nexacodes/moontask/core" @core,
 }
 
 options(

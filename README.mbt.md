@@ -16,6 +16,11 @@ The project currently provides:
 - Retry, delayed/scheduled delivery, dedupe keys, leases, heartbeats, and reaping
 - Admin APIs for queue stats, job lookup, dead job retry, job cancellation, and queue pause/resume
 
+Most day-to-day APIs are also re-exported from the root package
+`nexacodes/moontask`, so common applications usually only need one main library
+import, plus `nexacodes/moontask/core` when they want raw retry-policy or error
+constructors.
+
 This repository is inspired by, and partially behaviorally aligned with,
 [`vmihailenco/taskq`](https://github.com/vmihailenco/taskq), while providing a
 MoonBit-native implementation of the task model and runtime.
@@ -46,12 +51,24 @@ Add the dependency in `moon.mod.json`:
 {
   "deps": {
     "moonbitlang/async": "0.17.0",
-    "nexacodes/moontask": "0.1.0"
+    "nexacodes/moontask": "0.1.2"
   }
 }
 ```
 
 This project defaults to the `native` target.
+
+Typical application import:
+
+```mbt
+import {
+  "moonbitlang/async",
+  "moonbitlang/core/encoding/utf8" @utf8,
+  "moonbitlang/core/json" @json,
+  "nexacodes/moontask" @moontask,
+  "nexacodes/moontask/core" @core,
+}
+```
 
 ## Quick Start
 
@@ -71,7 +88,7 @@ struct EmailPayload {
   body : String
 } derive(ToJson, FromJson, Debug)
 
-fn email_codec() -> @core.Codec[EmailPayload] {
+fn email_codec() -> @moontask.Codec[EmailPayload] {
   {
     encode: fn(payload : EmailPayload) {
       @utf8.encode(payload.to_json().stringify())
@@ -85,22 +102,22 @@ fn email_codec() -> @core.Codec[EmailPayload] {
 }
 
 async fn main {
-  let backend = @memory.new_mem_backend()
-  let registry = @registry.new_registry()
+  let backend = @moontask.new_mem_backend()
+  let registry = @moontask.new_registry()
 
-  let email_task = try! @registry.register_task(registry, {
+  let email_task = try! @moontask.register_task(registry, {
     name: "email.send",
     codec: email_codec(),
     retry: @core.Fixed(max_attempts=3, delay_ms=500),
-    handler: fn(_ctx : @core.TaskContext, payload : EmailPayload) {
+    handler: fn(_ctx : @moontask.TaskContext, payload : EmailPayload) {
       println("send email to \{payload.to}: \{payload.subject}")
     },
     fallback: None,
   })
 
-  let producer = @producer.Producer::new(backend, "emails")
-  let consumer = @consumer.ConsumerService::new(backend, registry, {
-    ..@consumer.default_consumer_options("emails", "consumer-1"),
+  let producer = @moontask.Producer::new(backend, "emails")
+  let consumer = @moontask.ConsumerService::new(backend, registry, {
+    ..@moontask.default_consumer_options("emails", "consumer-1"),
     max_concurrency: 4,
   })
 
@@ -128,6 +145,20 @@ async fn main {
 For a more complete business-oriented example, see the demo directories.
 
 ## Examples
+
+### Root Package Facade
+
+The root package re-exports the most commonly used APIs, including:
+
+- task types and defaults from `core`
+- `Registry` and `register_task`
+- `Producer` and `ConsumerService`
+- `AdminClient`
+- `new_mem_backend` and `new_redis_backend`
+
+Lower-level or more specialized packages are still available when needed.
+`nexacodes/moontask/core` remains useful when you want raw enum/error
+constructors such as `@core.Fixed(...)`.
 
 ### 1. Local Memory Backend Demo
 
@@ -186,14 +217,14 @@ Demo guide:
 
 ## Common APIs
 
-- `@producer.Producer::enqueue`: enqueue with task defaults
-- `@producer.Producer::enqueue_with_options`: enqueue with delay, dedupe, timeout, and retry overrides
-- `@consumer.ConsumerService::start`: start the resident consumer loop
-- `@consumer.ConsumerService::stop`: gracefully stop the consumer
-- `@admin.AdminClient::queue_snapshot`: inspect queue stats
-- `@admin.AdminClient::list_jobs`: list jobs with pagination
-- `@admin.AdminClient::retry_dead_job`: retry a dead job
-- `@admin.AdminClient::pause_queue` / `resume_queue`: pause or resume a queue
+- `@moontask.Producer::enqueue`: enqueue with task defaults
+- `@moontask.Producer::enqueue_with_options`: enqueue with delay, dedupe, timeout, and retry overrides
+- `@moontask.ConsumerService::start`: start the resident consumer loop
+- `@moontask.ConsumerService::stop`: gracefully stop the consumer
+- `@moontask.AdminClient::queue_snapshot`: inspect queue stats
+- `@moontask.AdminClient::list_jobs`: list jobs with pagination
+- `@moontask.AdminClient::retry_dead_job`: retry a dead job
+- `@moontask.AdminClient::pause_queue` / `resume_queue`: pause or resume a queue
 
 ## Development
 

@@ -15,6 +15,10 @@
 - 重试、延迟/定时投递、去重键、lease、心跳续租、过期回收
 - 管理接口：队列统计、任务查询、重试 dead job、取消任务、暂停/恢复队列
 
+另外，常用 API 也会从根包 `nexacodes/moontask` 重新导出，日常使用通常只需要
+一个主库 import；如果要直接使用重试策略或错误构造器，再额外引入
+`nexacodes/moontask/core` 即可。
+
 这个仓库的设计和部分行为参考了
 [`vmihailenco/taskq`](https://github.com/vmihailenco/taskq)，并在 MoonBit
 生态中实现了对应的任务模型和运行时。
@@ -45,12 +49,24 @@
 {
   "deps": {
     "moonbitlang/async": "0.17.0",
-    "nexacodes/moontask": "0.1.0"
+    "nexacodes/moontask": "0.1.2"
   }
 }
 ```
 
 本项目默认使用 `native` target。
+
+典型 import：
+
+```mbt
+import {
+  "moonbitlang/async",
+  "moonbitlang/core/encoding/utf8" @utf8,
+  "moonbitlang/core/json" @json,
+  "nexacodes/moontask" @moontask,
+  "nexacodes/moontask/core" @core,
+}
+```
 
 ## 快速使用
 
@@ -70,7 +86,7 @@ struct EmailPayload {
   body : String
 } derive(ToJson, FromJson, Debug)
 
-fn email_codec() -> @core.Codec[EmailPayload] {
+fn email_codec() -> @moontask.Codec[EmailPayload] {
   {
     encode: fn(payload : EmailPayload) {
       @utf8.encode(payload.to_json().stringify())
@@ -84,22 +100,22 @@ fn email_codec() -> @core.Codec[EmailPayload] {
 }
 
 async fn main {
-  let backend = @memory.new_mem_backend()
-  let registry = @registry.new_registry()
+  let backend = @moontask.new_mem_backend()
+  let registry = @moontask.new_registry()
 
-  let email_task = try! @registry.register_task(registry, {
+  let email_task = try! @moontask.register_task(registry, {
     name: "email.send",
     codec: email_codec(),
     retry: @core.Fixed(max_attempts=3, delay_ms=500),
-    handler: fn(_ctx : @core.TaskContext, payload : EmailPayload) {
+    handler: fn(_ctx : @moontask.TaskContext, payload : EmailPayload) {
       println("send email to \{payload.to}: \{payload.subject}")
     },
     fallback: None,
   })
 
-  let producer = @producer.Producer::new(backend, "emails")
-  let consumer = @consumer.ConsumerService::new(backend, registry, {
-    ..@consumer.default_consumer_options("emails", "consumer-1"),
+  let producer = @moontask.Producer::new(backend, "emails")
+  let consumer = @moontask.ConsumerService::new(backend, registry, {
+    ..@moontask.default_consumer_options("emails", "consumer-1"),
     max_concurrency: 4,
   })
 
@@ -127,6 +143,20 @@ async fn main {
 如果你需要更完整的业务代码，直接看示例目录。
 
 ## 示例工程
+
+### 根包聚合导出
+
+根包已经重导出了最常用的一批接口，包括：
+
+- `core` 里的核心类型和默认值
+- `Registry` / `register_task`
+- `Producer` / `ConsumerService`
+- `AdminClient`
+- `new_mem_backend` / `new_redis_backend`
+
+更底层或更细分的能力仍然可以继续从子包直接引入。
+如果你需要直接构造 `RetryPolicy` 或 `QueueError`，继续配合
+`nexacodes/moontask/core` 使用会更直接。
 
 ### 1. 本地内存后端示例
 
@@ -184,14 +214,14 @@ moon run src/producer_app -- -count 1000 -timeout-ms 120000
 
 ## 常用 API
 
-- `@producer.Producer::enqueue`: 按任务默认配置入队
-- `@producer.Producer::enqueue_with_options`: 指定延迟、去重、超时、最大重试次数
-- `@consumer.ConsumerService::start`: 启动 consumer 常驻循环
-- `@consumer.ConsumerService::stop`: 优雅停止 consumer
-- `@admin.AdminClient::queue_snapshot`: 查看队列统计
-- `@admin.AdminClient::list_jobs`: 分页列出任务
-- `@admin.AdminClient::retry_dead_job`: 重试 dead job
-- `@admin.AdminClient::pause_queue` / `resume_queue`: 暂停或恢复队列
+- `@moontask.Producer::enqueue`: 按任务默认配置入队
+- `@moontask.Producer::enqueue_with_options`: 指定延迟、去重、超时、最大重试次数
+- `@moontask.ConsumerService::start`: 启动 consumer 常驻循环
+- `@moontask.ConsumerService::stop`: 优雅停止 consumer
+- `@moontask.AdminClient::queue_snapshot`: 查看队列统计
+- `@moontask.AdminClient::list_jobs`: 分页列出任务
+- `@moontask.AdminClient::retry_dead_job`: 重试 dead job
+- `@moontask.AdminClient::pause_queue` / `resume_queue`: 暂停或恢复队列
 
 ## 开发
 

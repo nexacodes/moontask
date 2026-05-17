@@ -23,12 +23,12 @@ pub struct BulkEmailPayload {
 } derive(ToJson, FromJson, Debug)
 
 ///|
-pub fn new_demo_backend() -> @redis.RedisBackend {
-  @redis.new_redis_backend(redis_host, redis_port, prefix=redis_prefix)
+pub fn new_demo_backend() -> @moontask.RedisBackend {
+  @moontask.new_redis_backend(redis_host, redis_port, prefix=redis_prefix)
 }
 
 ///|
-pub fn bulk_email_codec() -> @core.Codec[BulkEmailPayload] {
+pub fn bulk_email_codec() -> @moontask.Codec[BulkEmailPayload] {
   {
     encode: fn(payload : BulkEmailPayload) {
       @utf8.encode(payload.to_json().stringify())
@@ -59,13 +59,13 @@ fn redis_failure(op : String, err : String) -> Error {
 
 ///|
 pub fn register_producer_task(
-  registry : @registry.Registry,
-) -> @core.Task[BulkEmailPayload] raise {
-  @registry.register_task(registry, {
+  registry : @moontask.Registry,
+) -> @moontask.Task[BulkEmailPayload] raise {
+  @moontask.register_task(registry, {
     name: task_name,
     codec: bulk_email_codec(),
     retry: @core.Fixed(max_attempts=3, delay_ms=100),
-    handler: fn(_context : @core.TaskContext, _payload : BulkEmailPayload) {
+    handler: fn(_context : @moontask.TaskContext, _payload : BulkEmailPayload) {
       ()
     },
     fallback: None,
@@ -74,14 +74,17 @@ pub fn register_producer_task(
 
 ///|
 pub fn register_consumer_task(
-  registry : @registry.Registry,
+  registry : @moontask.Registry,
   consumer_id : String,
-) -> @core.Task[BulkEmailPayload] raise {
-  @registry.register_task(registry, {
+) -> @moontask.Task[BulkEmailPayload] raise {
+  @moontask.register_task(registry, {
     name: task_name,
     codec: bulk_email_codec(),
     retry: @core.Fixed(max_attempts=3, delay_ms=100),
-    handler: async fn(context : @core.TaskContext, payload : BulkEmailPayload) {
+    handler: async fn(
+      context : @moontask.TaskContext,
+      payload : BulkEmailPayload,
+    ) {
       @async.sleep(payload.simulated_work_ms)
       if payload.sequence_no <= 3 || payload.sequence_no % 100 == 0 {
         println(
@@ -90,7 +93,7 @@ pub fn register_consumer_task(
       }
     },
     fallback: Some(fn(
-      context : @core.TaskContext,
+      context : @moontask.TaskContext,
       payload : BulkEmailPayload,
       err : Error,
     ) {
@@ -103,7 +106,7 @@ pub fn register_consumer_task(
 
 ///|
 pub async fn reset_demo_keys() -> Int {
-  let client = @redis.connect(redis_host, redis_port)
+  let client = @moontask.connect(redis_host, redis_port)
   defer client.close()
   let keys = match client.keys("\{redis_prefix}:*") {
     Ok(keys) => keys
@@ -120,11 +123,11 @@ pub async fn reset_demo_keys() -> Int {
 
 ///|
 pub async fn wait_until_processed(
-  backend : @redis.RedisBackend,
+  backend : @moontask.RedisBackend,
   expected_count : Int,
   timeout_ms : Int,
-) -> @core.StatsSnapshot {
-  let admin = @admin.AdminClient::new(backend)
+) -> @moontask.StatsSnapshot {
+  let admin = @moontask.AdminClient::new(backend)
   let deadline = @async.now() + Int64::from_int(timeout_ms)
   let mut last_report = ""
   let poll_limit = Int::max(1, timeout_ms / 500 + 1)

@@ -41,13 +41,13 @@ async fn main {
   guard timeout_ms > 0 else { fail("`-timeout-ms` must be positive") }
 
   let backend = @demo.new_demo_backend()
-  let admin = @admin.AdminClient::new(backend)
+  let admin = @moontask.AdminClient::new(backend)
   let health = try! admin.health()
   println("redis health: \{health.to_json().stringify()}")
 
-  let registry = @registry.new_registry()
+  let registry = @moontask.new_registry()
   let task = try! @demo.register_producer_task(registry)
-  let producer = @producer.Producer::new(backend, @demo.queue_name)
+  let producer = @moontask.Producer::new(backend, @demo.queue_name)
 
   println(
     "enqueueing \{total_messages} messages to queue=\{@demo.queue_name} prefix=\{@demo.redis_prefix}",
@@ -57,7 +57,7 @@ async fn main {
     let payload = @demo.build_payload(sequence_no)
     ignore(
       producer.enqueue_with_options(task, payload, {
-        ..@core.default_enqueue_options(),
+        ..@moontask.default_enqueue_options(),
         timeout_ms: Some(10_000),
       }),
     )

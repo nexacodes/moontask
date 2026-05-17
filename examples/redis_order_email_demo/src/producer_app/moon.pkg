@@ -2,10 +2,7 @@ import {
   "moonbitlang/async",
   "moonbitlang/core/env",
   "moonbitlang/core/string" @string,
-  "nexacodes/moontask/admin",
-  "nexacodes/moontask/core",
-  "nexacodes/moontask/producer",
-  "nexacodes/moontask/registry",
+  "nexacodes/moontask" @moontask,
   "nexacodes/moontask_examples/redis_order_email_demo" @demo,
 }
 
